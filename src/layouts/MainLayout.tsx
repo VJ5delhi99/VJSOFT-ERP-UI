@@ -69,9 +69,9 @@ export default function MainLayout() {
     <div className={`app-shell ${sidebarOpen ? 'app-shell--sidebar-open' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar__brand">
-          <div className="sidebar__logo">VJ</div>
+          <div className="sidebar__logo">EX</div>
           <div>
-            <strong>VJ ERP</strong>
+            <strong>Edgeonix</strong>
             <span>Microservice workspace</span>
           </div>
         </div>
