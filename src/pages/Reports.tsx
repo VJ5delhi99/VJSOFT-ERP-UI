@@ -1,0 +1,302 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import AIAssistant from '../components/AIAssistant'
+import { CategoryBarChart } from '../components/Charts'
+import DataTable from '../components/DataTable'
+import EmptyState from '../components/EmptyState'
+import { SelectField, TextAreaField } from '../components/FormField'
+import PageHeader from '../components/PageHeader'
+import Spinner from '../components/Spinner'
+import StatCard from '../components/StatCard'
+import StatusBadge from '../components/StatusBadge'
+import { useToast } from '../hooks/useToast'
+import { financeService } from '../services/financeService'
+import type { DocumentExtractionResultDto, InvoiceAgingReportDto, InvoiceDto, ReportingSnapshotDto } from '../types'
+import { exportToCsv } from '../utils/export'
+import { formatCurrency } from '../utils/format'
+
+interface ExtractionFormValues {
+  documentType: string
+  content: string
+}
+
+export default function Reports() {
+  const { showToast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [snapshot, setSnapshot] = useState<ReportingSnapshotDto | null>(null)
+  const [aging, setAging] = useState<InvoiceAgingReportDto | null>(null)
+  const [overdueInvoices, setOverdueInvoices] = useState<InvoiceDto[]>([])
+  const [extractionResult, setExtractionResult] = useState<DocumentExtractionResultDto | null>(null)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm<ExtractionFormValues>({
+    defaultValues: {
+      documentType: 'Invoice',
+      content: ''
+    }
+  })
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadReports() {
+      setLoading(true)
+
+      const [snapshotResult, agingResult, overdueInvoicesResult] = await Promise.allSettled([
+        financeService.getReportingSnapshot(),
+        financeService.getInvoiceAging(),
+        financeService.getInvoices(true)
+      ])
+
+      if (!isMounted) {
+        return
+      }
+
+      setSnapshot(snapshotResult.status === 'fulfilled' ? snapshotResult.value : null)
+      setAging(agingResult.status === 'fulfilled' ? agingResult.value : null)
+      setOverdueInvoices(overdueInvoicesResult.status === 'fulfilled' ? overdueInvoicesResult.value : [])
+      setLoading(false)
+    }
+
+    void loadReports()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  async function exportReport() {
+    exportToCsv(
+      'erp-reporting-snapshot.csv',
+      overdueInvoices.map((invoice) => ({
+        InvoiceNumber: invoice.invoiceNumber,
+        CustomerName: invoice.customerName,
+        DueDate: invoice.dueDate,
+        TotalAmount: invoice.totalAmount,
+        Balance: invoice.balance,
+        Status: invoice.status,
+        DaysOverdue: invoice.daysOverdue
+      }))
+    )
+    showToast('Report exported', 'Overdue invoice data was exported to CSV.', 'success')
+  }
+
+  async function extractDocument(values: ExtractionFormValues) {
+    const result = await financeService.extractDocument({
+      documentType: values.documentType,
+      content: values.content
+    })
+
+    setExtractionResult(result)
+    showToast('Extraction complete', `${result.documentType} extraction returned ${result.confidencePercent}% confidence.`, 'success')
+    reset(values)
+  }
+
+  const agingBars = useMemo(
+    () =>
+      aging?.buckets.map((item) => ({
+        label: item.label,
+        value: item.amount
+      })) || [],
+    [aging]
+  )
+
+  const operationalBars = useMemo(() => {
+    if (!snapshot) {
+      return []
+    }
+
+    return [
+      { label: 'Open Projects', value: snapshot.openProjects },
+      { label: 'Open Tickets', value: snapshot.openTickets },
+      { label: 'Open Work Orders', value: snapshot.openWorkOrders }
+    ]
+  }, [snapshot])
+
+  if (loading) {
+    return <Spinner fullPage label="Loading reports and analytics" />
+  }
+
+  if (!snapshot) {
+    return <EmptyState title="Reports unavailable" description="The reporting endpoints did not return a usable snapshot." />
+  }
+
+  return (
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="Reporting"
+        title="Reports and analytics"
+        description="Reporting snapshot, aging analysis, AI assistant queries, and document extraction are consolidated here for finance and leadership workflows."
+        actions={
+          <button type="button" className="primary-button" onClick={() => void exportReport()} disabled={overdueInvoices.length === 0}>
+            Export CSV
+          </button>
+        }
+      />
+
+      <section className="stat-grid">
+        <StatCard label="Revenue (30 days)" value={snapshot.revenueLast30Days} format="currency" subtitle="Reporting snapshot" />
+        <StatCard label="Collections (30 days)" value={snapshot.collectionsLast30Days} format="currency" subtitle="Recent payment activity" />
+        <StatCard label="Inventory value" value={snapshot.inventoryValue} format="currency" subtitle="Current stock exposure" />
+        <StatCard label="Outstanding balance" value={snapshot.outstandingBalance} format="currency" subtitle="Receivables still open" />
+      </section>
+
+      <section className="dashboard-grid">
+        <article className="surface-card">
+          <div className="section-heading">
+            <div>
+              <h3>Invoice aging distribution</h3>
+              <p>Outstanding exposure grouped into aging buckets.</p>
+            </div>
+          </div>
+          {agingBars.length > 0 ? (
+            <CategoryBarChart data={agingBars} valueLabel="currency" />
+          ) : (
+            <EmptyState title="No aging data" description="The invoicing service did not return aging buckets." compact />
+          )}
+        </article>
+
+        <article className="surface-card">
+          <div className="section-heading">
+            <div>
+              <h3>Operational workload</h3>
+              <p>Open delivery commitments feeding cross-functional reporting.</p>
+            </div>
+          </div>
+          <CategoryBarChart data={operationalBars} />
+        </article>
+      </section>
+
+      <section className="dashboard-grid dashboard-grid--balanced">
+        <AIAssistant
+          title="Reporting assistant"
+          description="This assistant is backed by the reporting endpoint and returns backend-generated narratives."
+          initialMessage="Ask for a reporting summary such as revenue, collections, overdue invoices, or operations load."
+          suggestions={['Summarize current revenue and collections', 'What needs leadership attention?', 'How exposed are overdue invoices?']}
+          generateResponse={async (question) => {
+            const response = await financeService.askReportingAssistant({ question })
+            const metrics = Object.entries(response.metrics)
+              .slice(0, 3)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(' | ')
+
+            return metrics ? `${response.narrative} ${metrics}` : response.narrative
+          }}
+        />
+
+        <article className="surface-card">
+          <div className="section-heading">
+            <div>
+              <h3>Document extraction</h3>
+              <p>AI-ready intake surface backed by the invoice document extraction endpoint.</p>
+            </div>
+          </div>
+          <form className="form-grid" onSubmit={handleSubmit(extractDocument)}>
+            <SelectField
+              label="Document type"
+              error={errors.documentType?.message}
+              registration={register('documentType', { required: 'Document type is required.' })}
+            >
+              <option value="Invoice">Invoice</option>
+              <option value="Receipt">Receipt</option>
+              <option value="Statement">Statement</option>
+            </SelectField>
+            <TextAreaField
+              label="Document content"
+              placeholder="Paste OCR text or structured content for extraction"
+              error={errors.content?.message}
+              registration={register('content', { required: 'Document content is required.' })}
+            />
+            <button type="submit" className="primary-button" disabled={isSubmitting}>
+              {isSubmitting ? 'Extracting...' : 'Extract document'}
+            </button>
+          </form>
+
+          {extractionResult ? (
+            <div className="stack-list report-result">
+              <div className="list-row">
+                <div>
+                  <strong>{extractionResult.documentType}</strong>
+                  <p>Extraction result</p>
+                </div>
+                <StatusBadge
+                  label={`${extractionResult.confidencePercent}% confidence`}
+                  tone={extractionResult.confidencePercent >= 80 ? 'success' : 'warning'}
+                />
+              </div>
+              {Object.entries(extractionResult.fields).map(([key, value]) => (
+                <div key={key} className="list-row">
+                  <div>
+                    <strong>{key}</strong>
+                    <p>{value}</p>
+                  </div>
+                  <StatusBadge label="Field" tone="info" />
+                </div>
+              ))}
+              {extractionResult.warnings.map((warning) => (
+                <div key={warning} className="list-row">
+                  <div>
+                    <strong>Warning</strong>
+                    <p>{warning}</p>
+                  </div>
+                  <StatusBadge label="Review" tone="warning" />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </article>
+      </section>
+
+      <DataTable
+        title="Overdue invoices"
+        description="Overdue invoice list used for export and downstream analysis."
+        columns={[
+          {
+            key: 'invoiceNumber',
+            title: 'Invoice',
+            sortable: true,
+            render: (row) => (
+              <div className="table-primary">
+                <strong>{row.invoiceNumber}</strong>
+                <span>{row.customerName}</span>
+              </div>
+            )
+          },
+          {
+            key: 'dueDate',
+            title: 'Due date',
+            sortable: true
+          },
+          {
+            key: 'balance',
+            title: 'Balance',
+            sortable: true,
+            align: 'right',
+            render: (row) => formatCurrency(row.balance)
+          },
+          {
+            key: 'daysOverdue',
+            title: 'Days overdue',
+            sortable: true,
+            align: 'right'
+          },
+          {
+            key: 'status',
+            title: 'Status',
+            sortable: true,
+            render: (row) => <StatusBadge label={row.status} tone={row.daysOverdue > 30 ? 'danger' : 'warning'} />
+          }
+        ]}
+        data={overdueInvoices}
+        rowKey="id"
+        searchKeys={['invoiceNumber', 'customerName', 'status']}
+        searchPlaceholder="Search overdue invoices"
+        emptyTitle="No overdue invoices"
+        emptyDescription="No overdue invoice records were returned."
+      />
+    </div>
+  )
+}
