@@ -64,3 +64,42 @@ export const navigationItems: NavigationItem[] = [
     icon: 'settings'
   }
 ]
+
+export interface BreadcrumbItem {
+  label: string
+  path?: string
+}
+
+function toTitleCase(value: string) {
+  return value
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+export function findNavigationItem(pathname: string) {
+  return navigationItems.find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`))
+}
+
+export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const segments = pathname.split('/').filter(Boolean)
+
+  if (segments.length === 0) {
+    return [{ label: 'Workspace' }]
+  }
+
+  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Workspace', path: '/dashboard' }]
+  let currentPath = ''
+
+  segments.forEach((segment, index) => {
+    currentPath += `/${segment}`
+    const navigationItem = navigationItems.find((item) => item.path === currentPath)
+    const isLast = index === segments.length - 1
+
+    breadcrumbs.push({
+      label: navigationItem?.label || toTitleCase(segment),
+      path: isLast ? undefined : currentPath
+    })
+  })
+
+  return breadcrumbs
+}

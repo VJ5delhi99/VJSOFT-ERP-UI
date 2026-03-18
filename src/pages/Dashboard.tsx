@@ -364,7 +364,7 @@ export default function Dashboard() {
       <PageHeader
         eyebrow="Overview"
         title="Enterprise dashboard"
-        description="Cross-service KPIs, operational signals, and AI-ready insights are aggregated here without coupling the frontend to any single microservice."
+        description="Track core KPIs, operational risk, and AI-ready insights in a single executive workspace designed for fast daily review."
       />
 
       <section className="stat-grid">

@@ -75,8 +75,8 @@ export default function Settings() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Settings"
-        title="Environment and platform settings"
-        description="Runtime environment, service registry, session context, and AI readiness are surfaced here without hardcoding microservice URLs in module pages."
+        title="Environment settings"
+        description="Review session details, service endpoints, and AI readiness settings that affect how the ERP workspace operates."
       />
 
       <section className="stat-grid">

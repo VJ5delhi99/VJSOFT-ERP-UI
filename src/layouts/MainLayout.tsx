@@ -1,7 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { navigationItems } from '../config/navigation'
+import { buildBreadcrumbs, findNavigationItem, navigationItems } from '../config/navigation'
 import { useAuth } from '../hooks/useAuth'
+import { platformService } from '../services/platformService'
+import type { NotificationDto } from '../types'
+import { formatRelative } from '../utils/format'
+import StatusBadge from '../components/StatusBadge'
 
 function NavIcon({ icon }: { icon: string }) {
   const icons: Record<string, ReactNode> = {
@@ -50,66 +54,201 @@ function NavIcon({ icon }: { icon: string }) {
   return icons[icon] || icons.dashboard
 }
 
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16v2H4V7Zm0 8h16v2H4v-2Zm0-4h16v2H4v-2Z" />
+    </svg>
+  )
+}
+
+function BellIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5L3 18v1h18v-1l-2-2Z" />
+    </svg>
+  )
+}
+
+function severityTone(value: string) {
+  switch (value.toLowerCase()) {
+    case 'high':
+    case 'critical':
+      return 'danger' as const
+    case 'medium':
+    case 'warning':
+      return 'warning' as const
+    case 'low':
+      return 'success' as const
+    default:
+      return 'info' as const
+  }
+}
+
 export default function MainLayout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout, canAccess } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationDto[]>([])
+  const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null)
+  const notificationPanelRef = useRef<HTMLDivElement | null>(null)
 
-  const visibleNavigation = navigationItems.filter((item) => canAccess(item.roles, item.permissions))
-  const activeItem =
-    visibleNavigation.find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`)) || visibleNavigation[0]
+  const visibleNavigation = useMemo(
+    () => navigationItems.filter((item) => canAccess(item.roles, item.permissions)),
+    [canAccess]
+  )
+  const activeItem = findNavigationItem(pathname) || visibleNavigation[0]
+  const breadcrumbs = buildBreadcrumbs(pathname)
+  const unreadCount = notifications.length
+
+  useEffect(() => {
+    setSidebarOpen(false)
+    setNotificationsOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false)
+        setNotificationsOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (notificationPanelRef.current && !notificationPanelRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
+
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handlePointerDown)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+    }
+  }, [notificationsOpen])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadNotifications() {
+      try {
+        const items = await platformService.getNotifications(true)
+        if (isMounted) {
+          setNotifications(items.slice(0, 5))
+        }
+      } catch {
+        if (isMounted) {
+          setNotifications([])
+        }
+      }
+    }
+
+    void loadNotifications()
+    const intervalId = window.setInterval(() => {
+      void loadNotifications()
+    }, 90000)
+
+    return () => {
+      isMounted = false
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
   }
 
+  async function acknowledgeNotification(notificationId: string) {
+    setAcknowledgingId(notificationId)
+
+    try {
+      await platformService.acknowledgeNotification(notificationId)
+      setNotifications((current) => current.filter((item) => item.id !== notificationId))
+    } finally {
+      setAcknowledgingId(null)
+    }
+  }
+
   return (
     <div className={`app-shell ${sidebarOpen ? 'app-shell--sidebar-open' : ''}`}>
-      <aside className="sidebar">
+      {sidebarOpen ? <button type="button" className="app-shell__backdrop" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" /> : null}
+
+      <aside className="sidebar" aria-label="Primary navigation">
         <div className="sidebar__brand">
           <div className="sidebar__logo">EX</div>
           <div>
-            <strong>Edgeonix</strong>
-            <span>Microservice workspace</span>
+            <strong>Edgeonix ERP</strong>
+            <span>Enterprise operations workspace</span>
           </div>
         </div>
 
         <div className="sidebar__tenant-card">
-          <span className="sidebar__tenant-badge">Workspace</span>
-          <strong>{user?.tenantId || 'Tenant context pending'}</strong>
-          <p>{user ? `${user.roles.length} role assignments` : 'Authenticate to load context'}</p>
+          <span className="sidebar__tenant-badge">Active workspace</span>
+          <strong>{user?.tenantId || 'Tenant unavailable'}</strong>
+          <p>{user ? `${user.roles.length} role assignments active` : 'Sign in to load your workspace context'}</p>
         </div>
 
-        <nav className="sidebar__nav">
-          {visibleNavigation.map((item) => (
-            <NavLink
-              key={item.key}
-              to={item.path}
-              className={({ isActive }) => (isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link')}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <span className="sidebar__icon">
-                <NavIcon icon={item.icon} />
-              </span>
-              <span>
-                <strong>{item.label}</strong>
-                <small>{item.description}</small>
-              </span>
-            </NavLink>
-          ))}
-        </nav>
+        <div className="sidebar__section">
+          <span className="sidebar__section-label">Navigation</span>
+          <nav className="sidebar__nav">
+            {visibleNavigation.map((item) => (
+              <NavLink
+                key={item.key}
+                to={item.path}
+                className={({ isActive }) => (isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="sidebar__icon">
+                  <NavIcon icon={item.icon} />
+                </span>
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.description}</small>
+                </span>
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        <div className="sidebar__footer">
+          <span className="status-chip status-chip--success">Live session</span>
+          <p>{user?.userName || 'Authenticated user'}</p>
+        </div>
       </aside>
 
       <div className="app-shell__main">
         <header className="topbar">
           <div className="topbar__left">
-            <button type="button" className="ghost-button ghost-button--icon" onClick={() => setSidebarOpen((current) => !current)}>
-              Menu
+            <button
+              type="button"
+              className="ghost-button ghost-button--icon"
+              onClick={() => setSidebarOpen((current) => !current)}
+              aria-label="Toggle navigation"
+              aria-expanded={sidebarOpen}
+            >
+              <MenuIcon />
             </button>
-            <div>
-              <span className="topbar__eyebrow">Enterprise Control Panel</span>
+            <div className="topbar__title">
+              <nav className="topbar__breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                  {breadcrumbs.map((item, index) => (
+                    <li key={`${item.label}-${index}`}>{item.label}</li>
+                  ))}
+                </ol>
+              </nav>
+              <span className="topbar__eyebrow">{activeItem?.description || 'ERP workspace'}</span>
               <h2>{activeItem?.label || 'Dashboard'}</h2>
             </div>
           </div>
@@ -117,15 +256,82 @@ export default function MainLayout() {
           <div className="topbar__right">
             <div className="topbar__meta">
               <span>Active scope</span>
-              <strong>{user?.roles[0] || 'Authenticated user'}</strong>
+              <strong>{user?.roles[0] || 'Authenticated session'}</strong>
             </div>
+
+            <div ref={notificationPanelRef} className="topbar__notifications">
+              <button
+                type="button"
+                className="ghost-button topbar__notification-button"
+                onClick={() => setNotificationsOpen((current) => !current)}
+                aria-expanded={notificationsOpen}
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+              >
+                <BellIcon />
+                <span>Notifications</span>
+                {unreadCount > 0 ? <span className="notification-dot">{unreadCount}</span> : null}
+              </button>
+
+              {notificationsOpen ? (
+                <div className="notification-popover" role="dialog" aria-label="Notifications">
+                  <div className="notification-popover__header">
+                    <div>
+                      <strong>Notifications</strong>
+                      <span>{unreadCount > 0 ? `${unreadCount} unread` : 'All clear'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => {
+                        navigate('/companies')
+                        setNotificationsOpen(false)
+                      }}
+                    >
+                      Open feed
+                    </button>
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="notification-popover__empty">
+                      <strong>No unread items</strong>
+                      <p>Your workspace feed is up to date.</p>
+                    </div>
+                  ) : (
+                    <div className="notification-popover__list">
+                      {notifications.map((item) => (
+                        <article key={item.id} className="notification-item">
+                          <div className="notification-item__body">
+                            <div className="notification-item__header">
+                              <strong>{item.title}</strong>
+                              <StatusBadge label={item.severity} tone={severityTone(item.severity)} />
+                            </div>
+                            <p>{item.message}</p>
+                            <small>{formatRelative(item.createdAt)}</small>
+                          </div>
+                          <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={acknowledgingId === item.id}
+                            onClick={() => void acknowledgeNotification(item.id)}
+                          >
+                            {acknowledgingId === item.id ? 'Updating...' : 'Acknowledge'}
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
             <div className="topbar__profile">
               <div className="topbar__avatar">{user?.userName?.slice(0, 1).toUpperCase() || 'U'}</div>
-              <div>
+              <div className="topbar__profile-copy">
                 <strong>{user?.userName || 'Unknown user'}</strong>
                 <span>{user?.email || user?.tenantId || 'Tenant context unavailable'}</span>
               </div>
             </div>
+
             <button type="button" className="ghost-button" onClick={() => void handleLogout()}>
               Logout
             </button>

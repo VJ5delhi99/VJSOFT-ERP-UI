@@ -77,8 +77,8 @@ export default function Companies() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Tenant"
-        title="Tenant workspace"
-        description="The current backend exposes tenant context, notifications, and platform readiness rather than company CRUD. This screen is aligned to that contract."
+        title="Workspace activity"
+        description="Review tenant context, notification activity, and platform readiness for the current workspace."
         actions={
           <button type="button" className="ghost-button" onClick={() => setUnreadOnly((current) => !current)}>
             {unreadOnly ? 'Show all notifications' : 'Show unread only'}

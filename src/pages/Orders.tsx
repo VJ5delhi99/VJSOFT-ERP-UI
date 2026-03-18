@@ -325,8 +325,8 @@ export default function Orders() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Sales Ops"
-        title="Customers, orders, projects, and service desk"
-        description="The order-processing service is split into sales and operations capability areas, and the page respects those backend policy boundaries."
+        title="Sales and service operations"
+        description="Manage customers, orders, delivery projects, and service tickets with fewer clicks and clearer workflow visibility."
         actions={
           <>
             {canViewSales ? (

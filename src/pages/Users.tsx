@@ -118,7 +118,7 @@ export default function Users() {
       <PageHeader
         eyebrow="Access"
         title="Access control"
-        description="The backend exposes authenticated user context, audit, outbox, and role policy metadata. User provisioning itself remains owned by AuthService rather than a CRUD API."
+        description="Review role coverage, audit activity, and platform message flow without leaving the ERP workspace."
       />
 
       <section className="stat-grid">

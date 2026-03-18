@@ -47,10 +47,9 @@ export default function Login() {
       <section className="auth-page__hero">
         <div className="auth-page__intro">
           <span className="page-header__eyebrow">Edgeonix ERP</span>
-          <h1>Operate finance, inventory, tenants, and orders from one clean control surface.</h1>
+          <h1>Run finance, inventory, and operations from one clear enterprise workspace.</h1>
           <p>
-            Edgeonix is structured for microservice backends, role-aware access, and AI-ready insights without coupling
-            modules together.
+            Sign in to a role-aware ERP designed for daily operational work, dense data review, and clear cross-team handoffs.
           </p>
         </div>
 

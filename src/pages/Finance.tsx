@@ -231,8 +231,8 @@ export default function Finance() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Finance"
-        title="Billing, payments, and receivables"
-        description="BillingService, PaymentService, and InvoicingMicroservice are consolidated here for invoice control, collection visibility, and payment operations."
+        title="Finance operations"
+        description="Monitor invoicing, receivables, cash outlook, and collection risk from one finance control center."
         actions={
           <>
             <button type="button" className="ghost-button" onClick={() => setOverdueOnly((current) => !current)}>

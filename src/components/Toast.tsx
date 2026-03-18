@@ -16,12 +16,17 @@ function ToastItem({ id, title, message, tone }: { id: string; title: string; me
   }, [dispatch, id])
 
   return (
-    <article className={`toast toast--${tone}`}>
-      <div>
-        <strong>{title}</strong>
-        <p>{message}</p>
+    <article className={`toast toast--${tone}`} role="status">
+      <div className="toast__body">
+        <span className="toast__icon" aria-hidden="true">
+          {tone === 'success' ? '✓' : tone === 'danger' ? '!' : tone === 'warning' ? '•' : 'i'}
+        </span>
+        <div>
+          <strong>{title}</strong>
+          <p>{message}</p>
+        </div>
       </div>
-      <button type="button" className="ghost-button" onClick={() => dispatch(dismissToast(id))}>
+      <button type="button" className="ghost-button toast__dismiss" onClick={() => dispatch(dismissToast(id))} aria-label="Dismiss notification">
         Dismiss
       </button>
     </article>

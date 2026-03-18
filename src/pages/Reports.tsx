@@ -129,7 +129,7 @@ export default function Reports() {
       <PageHeader
         eyebrow="Reporting"
         title="Reports and analytics"
-        description="Reporting snapshot, aging analysis, AI assistant queries, and document extraction are consolidated here for finance and leadership workflows."
+        description="Run exports, review analytics, and use AI-assisted reporting tools built for finance and leadership workflows."
         actions={
           <button type="button" className="primary-button" onClick={() => void exportReport()} disabled={overdueInvoices.length === 0}>
             Export CSV

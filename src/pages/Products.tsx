@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { CategoryBarChart } from '../components/Charts'
+import ConfirmDialog from '../components/ConfirmDialog'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import { InputField, SelectField } from '../components/FormField'
@@ -143,6 +144,8 @@ export default function Products() {
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState<PurchaseOrderDto | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<AssetDto | null>(null)
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrderDto | null>(null)
+  const [archiveTarget, setArchiveTarget] = useState<ProductDto | null>(null)
+  const [archiveSubmitting, setArchiveSubmitting] = useState(false)
   const [receiveNotes, setReceiveNotes] = useState('')
   const [receiveAt, setReceiveAt] = useState('')
   const [pendingWorkOrderStatus, setPendingWorkOrderStatus] = useState('Scheduled')
@@ -358,14 +361,21 @@ export default function Products() {
     await loadWorkspace()
   }
 
-  async function deleteProduct(product: ProductDto) {
-    if (!window.confirm(`Archive ${product.name}?`)) {
+  async function archiveProduct() {
+    if (!archiveTarget) {
       return
     }
 
-    await catalogService.removeProduct(product.id)
-    showToast('Product archived', `${product.name} was marked inactive.`, 'warning')
-    await loadWorkspace()
+    setArchiveSubmitting(true)
+
+    try {
+      await catalogService.removeProduct(archiveTarget.id)
+      showToast('Product archived', `${archiveTarget.name} was marked inactive.`, 'warning')
+      setArchiveTarget(null)
+      await loadWorkspace()
+    } finally {
+      setArchiveSubmitting(false)
+    }
   }
 
   async function submitAdjustment(values: AdjustmentFormValues) {
@@ -458,8 +468,8 @@ export default function Products() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Catalog & Inventory"
-        title="Products, stock, procurement, assets, and manufacturing"
-        description="CatalogService and InventoryService are combined here to cover product master data, stock control, procurement workflows, and operational anomalies."
+        title="Inventory operations"
+        description="Manage products, stock, purchasing, assets, and manufacturing workflows from one consistent workspace."
         actions={
           <>
             {canViewCatalog && canManageInventory ? (
@@ -616,7 +626,7 @@ export default function Products() {
               { key: 'price', title: 'Price', sortable: true, align: 'right', render: (row) => formatCurrency(row.price) },
               { key: 'stockQuantity', title: 'Stock', sortable: true, render: (row) => <StatusBadge label={`${row.stockQuantity}`} tone={inventoryTone(row.isLowStock)} /> },
               { key: 'isActive', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'success' : 'warning'} /> },
-              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <div className="table-actions"><button type="button" className="ghost-button" onClick={() => openProductModal(row)}>Edit</button><button type="button" className="danger-button" onClick={() => void deleteProduct(row)}>Archive</button></div> : 'View' }
+              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <div className="table-actions"><button type="button" className="ghost-button" onClick={() => openProductModal(row)}>Edit</button><button type="button" className="danger-button" onClick={() => setArchiveTarget(row)}>Archive</button></div> : 'View' }
             ]}
             data={products}
             rowKey="id"
@@ -980,6 +990,20 @@ export default function Products() {
           </label>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(archiveTarget)}
+        onClose={() => {
+          if (!archiveSubmitting) {
+            setArchiveTarget(null)
+          }
+        }}
+        onConfirm={() => void archiveProduct()}
+        title={archiveTarget ? `Archive ${archiveTarget.name}?` : 'Archive product?'}
+        description="The product will be marked inactive and removed from active catalog workflows."
+        confirmLabel="Archive product"
+        loading={archiveSubmitting}
+      />
     </div>
   )
 }
