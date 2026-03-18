@@ -3,7 +3,7 @@ interface SpinnerProps {
   fullPage?: boolean
 }
 
-export default function Spinner({ label = 'Loading data', fullPage = false }: SpinnerProps) {
+export default function Spinner({ label = 'Loading', fullPage = false }: SpinnerProps) {
   if (fullPage) {
     return (
       <div className="spinner spinner--full" role="status" aria-live="polite">
@@ -11,7 +11,7 @@ export default function Spinner({ label = 'Loading data', fullPage = false }: Sp
           <div className="spinner__ring" />
           <div className="spinner__content">
             <strong>{label}</strong>
-            <span className="spinner__label">Preparing the workspace and loading the latest operational data.</span>
+            <span className="spinner__label">Getting the latest information for your workspace.</span>
           </div>
         </div>
         <div className="spinner__skeleton-grid" aria-hidden="true">

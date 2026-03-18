@@ -6,37 +6,37 @@ export const navigationItems: NavigationItem[] = [
     key: 'dashboard',
     label: 'Dashboard',
     path: '/dashboard',
-    description: 'Cross-service KPIs and insights',
+    description: 'Business performance and key updates',
     icon: 'dashboard'
   },
   {
     key: 'users',
-    label: 'Access Control',
+    label: 'User Access',
     path: '/users',
-    description: 'Roles, permissions, audit',
+    description: 'Roles, permissions, and activity',
     icon: 'access',
     permissions: ['CanManageUsers']
   },
   {
     key: 'companies',
-    label: 'Tenant Workspace',
+    label: 'Workspace',
     path: '/companies',
-    description: 'Tenant context and platform feed',
+    description: 'Workspace details and updates',
     icon: 'tenant'
   },
   {
     key: 'orders',
-    label: 'Sales Ops',
+    label: 'Sales & Service',
     path: '/orders',
-    description: 'Customers, orders, projects, tickets',
+    description: 'Customers, orders, projects, and support',
     icon: 'orders',
     roles: [...new Set([...roleGroups.salesAccess, ...roleGroups.operationsAccess])]
   },
   {
     key: 'products',
-    label: 'Catalog & Inventory',
+    label: 'Products & Inventory',
     path: '/products',
-    description: 'Products, stock, procurement, assets',
+    description: 'Products, stock, purchasing, and assets',
     icon: 'products',
     roles: [...new Set([...roleGroups.catalogAccess, ...roleGroups.inventoryAccess])]
   },
@@ -52,7 +52,7 @@ export const navigationItems: NavigationItem[] = [
     key: 'reports',
     label: 'Reports',
     path: '/reports',
-    description: 'Analytics, assistant, exports',
+    description: 'Reports, exports, and insights',
     icon: 'reports',
     permissions: ['CanViewFinance']
   },
@@ -60,7 +60,7 @@ export const navigationItems: NavigationItem[] = [
     key: 'settings',
     label: 'Settings',
     path: '/settings',
-    description: 'Platform readiness and service config',
+    description: 'Workspace settings and connections',
     icon: 'settings'
   }
 ]
@@ -84,10 +84,10 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const segments = pathname.split('/').filter(Boolean)
 
   if (segments.length === 0) {
-    return [{ label: 'Workspace' }]
+    return [{ label: 'Home' }]
   }
 
-  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Workspace', path: '/dashboard' }]
+  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Home', path: '/dashboard' }]
   let currentPath = ''
 
   segments.forEach((segment, index) => {

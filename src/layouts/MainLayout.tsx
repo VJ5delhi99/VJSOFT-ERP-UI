@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { buildBreadcrumbs, findNavigationItem, navigationItems } from '../config/navigation'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { platformService } from '../services/platformService'
-import type { NotificationDto } from '../types'
+import type { DemoStatusDto, NotificationDto } from '../types'
 import { formatRelative } from '../utils/format'
 import StatusBadge from '../components/StatusBadge'
 
@@ -89,9 +90,12 @@ export default function MainLayout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout, canAccess } = useAuth()
+  const { showToast } = useToast()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationDto[]>([])
+  const [demoStatus, setDemoStatus] = useState<DemoStatusDto | null>(null)
+  const [resettingDemo, setResettingDemo] = useState(false)
   const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null)
   const notificationPanelRef = useRef<HTMLDivElement | null>(null)
 
@@ -165,9 +169,50 @@ export default function MainLayout() {
     }
   }, [])
 
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadDemoStatus() {
+      try {
+        const status = await platformService.getDemoStatus()
+        if (isMounted) {
+          setDemoStatus(status)
+        }
+      } catch {
+        if (isMounted) {
+          setDemoStatus(null)
+        }
+      }
+    }
+
+    if (user?.isDemoUser) {
+      void loadDemoStatus()
+    } else {
+      setDemoStatus(null)
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.isDemoUser, user?.tenantId])
+
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
+  }
+
+  async function handleResetDemo() {
+    setResettingDemo(true)
+
+    try {
+      await platformService.resetDemo()
+      showToast('Sample data reset', 'The demo workspace has been refreshed with the default sample data.', 'success')
+      window.location.reload()
+    } catch {
+      showToast('Reset did not complete', 'The sample data could not be refreshed right now. Please try again shortly.', 'danger')
+    } finally {
+      setResettingDemo(false)
+    }
   }
 
   async function acknowledgeNotification(notificationId: string) {
@@ -190,18 +235,18 @@ export default function MainLayout() {
           <div className="sidebar__logo">EX</div>
           <div>
             <strong>Edgeonix ERP</strong>
-            <span>Enterprise operations workspace</span>
+            <span>Business operations workspace</span>
           </div>
         </div>
 
         <div className="sidebar__tenant-card">
-          <span className="sidebar__tenant-badge">Active workspace</span>
-          <strong>{user?.tenantId || 'Tenant unavailable'}</strong>
-          <p>{user ? `${user.roles.length} role assignments active` : 'Sign in to load your workspace context'}</p>
+          <span className="sidebar__tenant-badge">Current workspace</span>
+          <strong>{user?.tenantId || 'Workspace unavailable'}</strong>
+          <p>{user ? `${user.roles.length} access roles active` : 'Sign in to view your workspace details'}</p>
         </div>
 
         <div className="sidebar__section">
-          <span className="sidebar__section-label">Navigation</span>
+          <span className="sidebar__section-label">Menu</span>
           <nav className="sidebar__nav">
             {visibleNavigation.map((item) => (
               <NavLink
@@ -223,8 +268,8 @@ export default function MainLayout() {
         </div>
 
         <div className="sidebar__footer">
-          <span className="status-chip status-chip--success">Live session</span>
-          <p>{user?.userName || 'Authenticated user'}</p>
+          <span className="status-chip status-chip--success">Signed in</span>
+          <p>{user?.userName || 'Signed-in user'}</p>
         </div>
       </aside>
 
@@ -255,8 +300,8 @@ export default function MainLayout() {
 
           <div className="topbar__right">
             <div className="topbar__meta">
-              <span>Active scope</span>
-              <strong>{user?.roles[0] || 'Authenticated session'}</strong>
+              <span>Current role</span>
+              <strong>{user?.roles[0] || 'Signed-in session'}</strong>
             </div>
 
             <div ref={notificationPanelRef} className="topbar__notifications">
@@ -265,19 +310,19 @@ export default function MainLayout() {
                 className="ghost-button topbar__notification-button"
                 onClick={() => setNotificationsOpen((current) => !current)}
                 aria-expanded={notificationsOpen}
-                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+                aria-label={`Updates${unreadCount > 0 ? `, ${unreadCount} new` : ''}`}
               >
                 <BellIcon />
-                <span>Notifications</span>
+                <span>Updates</span>
                 {unreadCount > 0 ? <span className="notification-dot">{unreadCount}</span> : null}
               </button>
 
               {notificationsOpen ? (
-                <div className="notification-popover" role="dialog" aria-label="Notifications">
+                <div className="notification-popover" role="dialog" aria-label="Updates">
                   <div className="notification-popover__header">
                     <div>
-                      <strong>Notifications</strong>
-                      <span>{unreadCount > 0 ? `${unreadCount} unread` : 'All clear'}</span>
+                      <strong>Updates</strong>
+                      <span>{unreadCount > 0 ? `${unreadCount} new` : "You're all caught up"}</span>
                     </div>
                     <button
                       type="button"
@@ -287,14 +332,14 @@ export default function MainLayout() {
                         setNotificationsOpen(false)
                       }}
                     >
-                      Open feed
+                      View all
                     </button>
                   </div>
 
                   {notifications.length === 0 ? (
                     <div className="notification-popover__empty">
-                      <strong>No unread items</strong>
-                      <p>Your workspace feed is up to date.</p>
+                      <strong>No new updates</strong>
+                      <p>Your workspace is up to date.</p>
                     </div>
                   ) : (
                     <div className="notification-popover__list">
@@ -314,7 +359,7 @@ export default function MainLayout() {
                             disabled={acknowledgingId === item.id}
                             onClick={() => void acknowledgeNotification(item.id)}
                           >
-                            {acknowledgingId === item.id ? 'Updating...' : 'Acknowledge'}
+                            {acknowledgingId === item.id ? 'Saving...' : 'Mark as read'}
                           </button>
                         </article>
                       ))}
@@ -327,18 +372,32 @@ export default function MainLayout() {
             <div className="topbar__profile">
               <div className="topbar__avatar">{user?.userName?.slice(0, 1).toUpperCase() || 'U'}</div>
               <div className="topbar__profile-copy">
-                <strong>{user?.userName || 'Unknown user'}</strong>
-                <span>{user?.email || user?.tenantId || 'Tenant context unavailable'}</span>
+                <strong>{user?.userName || 'User account'}</strong>
+                <span>{user?.email || user?.tenantId || 'Workspace details unavailable'}</span>
               </div>
             </div>
 
             <button type="button" className="ghost-button" onClick={() => void handleLogout()}>
-              Logout
+              Sign out
             </button>
           </div>
         </header>
 
         <main className="content-shell">
+          {user?.isDemoUser ? (
+            <section className="demo-banner" aria-label="Demo mode status">
+              <div className="demo-banner__copy">
+                <span className="page-header__eyebrow">Demo workspace</span>
+                <strong>You are viewing sample business data.</strong>
+                <p>Any changes stay in the demo workspace and can be reset at any time.</p>
+              </div>
+              {demoStatus?.canReset ? (
+                <button type="button" className="ghost-button" onClick={() => void handleResetDemo()} disabled={resettingDemo}>
+                  {resettingDemo ? 'Resetting sample data...' : 'Reset sample data'}
+                </button>
+              ) : null}
+            </section>
+          ) : null}
           <Outlet />
         </main>
       </div>

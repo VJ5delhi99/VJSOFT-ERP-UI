@@ -113,7 +113,7 @@ function anomalyTone(value: string) {
 }
 
 export default function Products() {
-  const { canAccess } = useAuth()
+  const { canAccess, user } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [catalogOverview, setCatalogOverview] = useState<Awaited<ReturnType<typeof catalogService.getOverview>> | null>(null)
@@ -315,10 +315,10 @@ export default function Products() {
   async function submitCategory(values: CategoryFormValues) {
     if (editingCategory) {
       await catalogService.updateCategory(editingCategory.id, values)
-      showToast('Category updated', `${values.name} was updated.`, 'success')
+      showToast('Category saved', `${values.name} has been updated.`, 'success')
     } else {
       await catalogService.createCategory(values)
-      showToast('Category created', `${values.name} was created.`, 'success')
+      showToast('Category saved', `${values.name} has been added.`, 'success')
     }
     setCategoryModalOpen(false)
     await loadWorkspace()
@@ -328,10 +328,10 @@ export default function Products() {
     const payload = { ...values, leadTimeDays: Number(values.leadTimeDays) }
     if (editingSupplier) {
       await catalogService.updateSupplier(editingSupplier.id, payload)
-      showToast('Supplier updated', `${values.name} was updated.`, 'success')
+      showToast('Supplier saved', `${values.name} has been updated.`, 'success')
     } else {
       await catalogService.createSupplier(payload)
-      showToast('Supplier created', `${values.name} was created.`, 'success')
+      showToast('Supplier saved', `${values.name} has been added.`, 'success')
     }
     setSupplierModalOpen(false)
     await loadWorkspace()
@@ -352,10 +352,10 @@ export default function Products() {
 
     if (editingProduct) {
       await catalogService.updateProduct(editingProduct.id, payload)
-      showToast('Product updated', `${values.name} was updated.`, 'success')
+      showToast('Product saved', `${values.name} has been updated.`, 'success')
     } else {
       await catalogService.createProduct(payload)
-      showToast('Product created', `${values.name} was created.`, 'success')
+      showToast('Product saved', `${values.name} has been added.`, 'success')
     }
     setProductModalOpen(false)
     await loadWorkspace()
@@ -370,7 +370,7 @@ export default function Products() {
 
     try {
       await catalogService.removeProduct(archiveTarget.id)
-      showToast('Product archived', `${archiveTarget.name} was marked inactive.`, 'warning')
+      showToast('Product archived', `${archiveTarget.name} has been marked inactive.`, 'warning')
       setArchiveTarget(null)
       await loadWorkspace()
     } finally {
@@ -387,7 +387,7 @@ export default function Products() {
       quantityDelta: Number(values.quantityDelta),
       reason: values.reason
     })
-    showToast('Inventory adjusted', `${selectedInventoryItem.productName} stock was updated.`, 'success')
+    showToast('Stock updated', `${selectedInventoryItem.productName} stock has been updated.`, 'success')
     setAdjustmentModalOpen(false)
     await loadWorkspace()
   }
@@ -398,7 +398,7 @@ export default function Products() {
       lines: [{ productId: values.productId, quantity: Number(values.quantity) }],
       notes: values.notes
     })
-    showToast('Purchase order created', 'The procurement request was submitted.', 'success')
+    showToast('Purchase order created', 'The purchase order has been saved.', 'success')
     setPurchaseOrderModalOpen(false)
     await loadWorkspace()
   }
@@ -413,7 +413,7 @@ export default function Products() {
       conditionScore: Number(values.conditionScore),
       notes: values.notes
     })
-    showToast('Maintenance recorded', `${selectedAsset.assetTag} maintenance was recorded.`, 'success')
+    showToast('Maintenance saved', `${selectedAsset.assetTag} maintenance has been recorded.`, 'success')
     setMaintenanceModalOpen(false)
     await loadWorkspace()
   }
@@ -427,7 +427,7 @@ export default function Products() {
       quantity: Number(values.quantity),
       plannedDurationHours: Number(values.plannedDurationHours)
     })
-    showToast('Work order created', 'The manufacturing work order was created.', 'success')
+    showToast('Work order created', 'The work order has been created.', 'success')
     setWorkOrderModalOpen(false)
     await loadWorkspace()
   }
@@ -441,7 +441,7 @@ export default function Products() {
       receivedAt: receiveAt ? new Date(receiveAt).toISOString() : undefined,
       notes: receiveNotes
     })
-    showToast('Purchase order received', `${selectedPurchaseOrder.purchaseOrderNumber} was received.`, 'success')
+    showToast('Goods received', `${selectedPurchaseOrder.purchaseOrderNumber} has been received.`, 'success')
     setReceiveModalOpen(false)
     await loadWorkspace()
   }
@@ -455,21 +455,21 @@ export default function Products() {
       status: pendingWorkOrderStatus,
       producedQuantity: pendingProducedQuantity
     })
-    showToast('Work order updated', `${selectedWorkOrder.workOrderNumber} moved to ${pendingWorkOrderStatus}.`, 'success')
+    showToast('Work order updated', `${selectedWorkOrder.workOrderNumber} is now ${pendingWorkOrderStatus}.`, 'success')
     setWorkOrderStatusOpen(false)
     await loadWorkspace()
   }
 
   if (loading) {
-    return <Spinner fullPage label="Loading catalog and inventory workspace" />
+    return <Spinner fullPage label="Loading product and inventory information" />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Catalog & Inventory"
-        title="Inventory operations"
-        description="Manage products, stock, purchasing, assets, and manufacturing workflows from one consistent workspace."
+        eyebrow="Products & Inventory"
+        title="Products and inventory"
+        description="Manage products, stock, purchasing, assets, and work orders in one place."
         actions={
           <>
             {canViewCatalog && canManageInventory ? (
@@ -492,10 +492,10 @@ export default function Products() {
       />
 
       <section className="stat-grid">
-        <StatCard label="Active products" value={catalogOverview?.activeProducts ?? products.filter((item) => item.isActive).length} format="number" subtitle="Catalog availability" />
-        <StatCard label="Low-stock products" value={inventoryDashboard?.lowStockProducts ?? catalogOverview?.lowStockProducts ?? 0} format="number" subtitle="Replenishment pressure" />
-        <StatCard label="Inventory value" value={inventoryDashboard?.inventoryValue ?? catalogOverview?.inventoryValue ?? 0} format="currency" subtitle="Stock exposure" />
-        <StatCard label="Open purchase orders" value={purchaseOrders.filter((item) => item.status !== 'Received').length} format="number" subtitle="Procurement pipeline" />
+        <StatCard label="Active products" value={catalogOverview?.activeProducts ?? products.filter((item) => item.isActive).length} format="number" subtitle="Products available today" />
+        <StatCard label="Low-stock products" value={inventoryDashboard?.lowStockProducts ?? catalogOverview?.lowStockProducts ?? 0} format="number" subtitle="Items needing replenishment" />
+        <StatCard label="Inventory value" value={inventoryDashboard?.inventoryValue ?? catalogOverview?.inventoryValue ?? 0} format="currency" subtitle="Current stock value" />
+        <StatCard label="Open purchase orders" value={purchaseOrders.filter((item) => item.status !== 'Received').length} format="number" subtitle="Orders still in progress" />
       </section>
 
       <section className="dashboard-grid">
@@ -503,17 +503,17 @@ export default function Products() {
           <div className="section-heading">
             <div>
               <h3>Demand forecast</h3>
-              <p>Forecast units from the inventory planning endpoint.</p>
+              <p>Expected demand for the next planning period.</p>
             </div>
           </div>
-          {demandBars.length > 0 ? <CategoryBarChart data={demandBars} /> : <EmptyState title="No forecast data" description="Demand forecast is not available for the current role." compact />}
+          {demandBars.length > 0 ? <CategoryBarChart data={demandBars} /> : <EmptyState title="No demand outlook" description="Demand forecast information is not available for this account." compact />}
         </article>
 
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Anomalies and reorder cues</h3>
-              <p>High-signal exceptions to review before they affect fulfillment.</p>
+              <h3>Priority actions</h3>
+              <p>Warnings and reorder suggestions to review first.</p>
             </div>
           </div>
           <div className="stack-list">
@@ -531,14 +531,14 @@ export default function Products() {
                 <div>
                   <strong>{item.productName}</strong>
                   <p>
-                    {item.currentStock} on hand / recommend {item.recommendedOrderQuantity}
+                    {item.currentStock} on hand / order {item.recommendedOrderQuantity}
                   </p>
                 </div>
                 <StatusBadge label={item.urgency} tone={anomalyTone(item.urgency)} />
               </div>
             ))}
             {anomalies.length === 0 && reorderRecommendations.length === 0 ? (
-              <EmptyState title="No active exceptions" description="No anomaly or reorder recommendation is currently returned." compact />
+              <EmptyState title="No priority actions" description="There are no urgent issues or reorder recommendations right now." compact />
             ) : null}
           </div>
         </article>
@@ -551,7 +551,7 @@ export default function Products() {
               <div className="section-heading">
                 <div>
                   <h3>Categories</h3>
-                  <p>Catalog segmentation and low-stock pressure by category.</p>
+                  <p>Organize products into clear categories.</p>
                 </div>
                 {canManageInventory ? (
                   <button type="button" className="ghost-button" onClick={() => openCategoryModal()}>
@@ -565,7 +565,7 @@ export default function Products() {
                     <div>
                       <strong>{item.name}</strong>
                       <p>
-                        {item.activeProductsCount} active products / {item.lowStockProducts} low stock
+                        {item.activeProductsCount} active products / {item.lowStockProducts} low on stock
                       </p>
                     </div>
                     {canManageInventory ? (
@@ -577,7 +577,7 @@ export default function Products() {
                     )}
                   </div>
                 ))}
-                {categories.length === 0 ? <EmptyState title="No categories" description="No categories were returned by the catalog service." compact /> : null}
+                {categories.length === 0 ? <EmptyState title="No categories" description="Add a category to organize your products." compact /> : null}
               </div>
             </article>
 
@@ -585,7 +585,7 @@ export default function Products() {
               <div className="section-heading">
                 <div>
                   <h3>Suppliers</h3>
-                  <p>Supplier master data and procurement risk view.</p>
+                  <p>Suppliers used for purchasing and replenishment.</p>
                 </div>
                 {canApprovePurchase ? (
                   <button type="button" className="ghost-button" onClick={() => openSupplierModal()}>
@@ -611,14 +611,14 @@ export default function Products() {
                     )}
                   </div>
                 ))}
-                {suppliers.length === 0 ? <EmptyState title="No suppliers" description="No suppliers were returned by the catalog service." compact /> : null}
+                {suppliers.length === 0 ? <EmptyState title="No suppliers" description="Add a supplier to support purchasing." compact /> : null}
               </div>
             </article>
           </section>
 
           <DataTable
             title="Products"
-            description="Product master records with inventory-sensitive status and editable catalog data."
+            description="Manage product details, stock status, and availability."
             columns={[
               { key: 'name', title: 'Product', sortable: true, render: (row) => <div className="table-primary"><strong>{row.name}</strong><span>{row.sku}</span></div> },
               { key: 'category', title: 'Category', sortable: true },
@@ -626,18 +626,18 @@ export default function Products() {
               { key: 'price', title: 'Price', sortable: true, align: 'right', render: (row) => formatCurrency(row.price) },
               { key: 'stockQuantity', title: 'Stock', sortable: true, render: (row) => <StatusBadge label={`${row.stockQuantity}`} tone={inventoryTone(row.isLowStock)} /> },
               { key: 'isActive', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'success' : 'warning'} /> },
-              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <div className="table-actions"><button type="button" className="ghost-button" onClick={() => openProductModal(row)}>Edit</button><button type="button" className="danger-button" onClick={() => setArchiveTarget(row)}>Archive</button></div> : 'View' }
+              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <div className="table-actions"><button type="button" className="ghost-button" onClick={() => openProductModal(row)}>Edit</button><button type="button" className="danger-button" onClick={() => setArchiveTarget(row)}>Archive</button></div> : 'View details' }
             ]}
             data={products}
             rowKey="id"
             searchKeys={['name', 'sku', 'category', 'supplier', 'description']}
             searchPlaceholder="Search products"
-            emptyTitle="No products returned"
-            emptyDescription="No products were returned by the catalog service."
+            emptyTitle="No products found"
+            emptyDescription="Add a product or try a different search."
           />
         </>
       ) : (
-        <EmptyState title="Catalog module hidden" description="The current role does not include catalog-service access." compact />
+        <EmptyState title="Catalog unavailable" description="This account does not currently have access to product details." compact />
       )}
 
       {canViewInventory ? (
@@ -645,89 +645,89 @@ export default function Products() {
           <section className="dashboard-grid dashboard-grid--balanced">
             <DataTable
               title="Inventory items"
-              description="Current stock position and adjustment workflow."
+              description="Current stock levels and quick adjustments."
               columns={[
                 { key: 'productName', title: 'Item', sortable: true, render: (row) => <div className="table-primary"><strong>{row.productName}</strong><span>{row.sku}</span></div> },
                 { key: 'supplier', title: 'Supplier', sortable: true },
                 { key: 'stockQuantity', title: 'On hand', sortable: true, align: 'right' },
                 { key: 'availableCoverDays', title: 'Cover days', sortable: true, align: 'right' },
                 { key: 'inventoryValue', title: 'Value', sortable: true, align: 'right', render: (row) => formatCurrency(row.inventoryValue) },
-                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openAdjustmentModal(row)}>Adjust</button> : 'View' }
+                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openAdjustmentModal(row)}>Adjust stock</button> : 'View details' }
               ]}
               data={inventoryItems}
               rowKey="productId"
               searchKeys={['productName', 'sku', 'supplier']}
               searchPlaceholder="Search inventory"
               emptyTitle="No inventory items"
-              emptyDescription="No inventory items were returned."
+              emptyDescription="Stock items will appear here when inventory is available."
             />
 
             <DataTable
               title="Purchase orders"
-              description="Procurement pipeline and receipt workflow."
+              description="Track purchase orders and received goods."
               columns={[
                 { key: 'purchaseOrderNumber', title: 'Purchase order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.purchaseOrderNumber}</strong><span>{row.supplierName}</span></div> },
                 { key: 'expectedDeliveryDate', title: 'Expected', sortable: true, render: (row) => formatDate(row.expectedDeliveryDate) },
                 { key: 'totalCost', title: 'Total cost', sortable: true, align: 'right', render: (row) => formatCurrency(row.totalCost) },
                 { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={purchaseOrderTone(row.status)} /> },
-                { key: 'actions', title: 'Actions', render: (row) => canApprovePurchase && row.status !== 'Received' ? <button type="button" className="ghost-button" onClick={() => openReceiveModal(row)}>Receive</button> : 'Closed' }
+                { key: 'actions', title: 'Actions', render: (row) => canApprovePurchase && row.status !== 'Received' ? <button type="button" className="ghost-button" onClick={() => openReceiveModal(row)}>Receive goods</button> : 'Closed' }
               ]}
               data={purchaseOrders}
               rowKey="id"
               searchKeys={['purchaseOrderNumber', 'supplierName', 'status']}
               searchPlaceholder="Search purchase orders"
               emptyTitle="No purchase orders"
-              emptyDescription="No purchase orders were returned."
+              emptyDescription="Purchase orders will appear here after they are created."
             />
           </section>
 
           <section className="dashboard-grid dashboard-grid--balanced">
             <DataTable
               title="Assets"
-              description="Asset maintenance surface for equipment and service scheduling."
+              description="Equipment and maintenance planning."
               columns={[
                 { key: 'assetTag', title: 'Asset', sortable: true, render: (row) => <div className="table-primary"><strong>{row.assetTag}</strong><span>{row.name}</span></div> },
                 { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={row.maintenanceRiskScore > 70 ? 'danger' : 'info'} /> },
                 { key: 'nextServiceDueAt', title: 'Next service', sortable: true, render: (row) => formatDate(row.nextServiceDueAt) },
                 { key: 'conditionScore', title: 'Condition', sortable: true, align: 'right', render: (row) => `${row.conditionScore}%` },
-                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openMaintenanceModal(row)}>Maintain</button> : 'View' }
+                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openMaintenanceModal(row)}>Record maintenance</button> : 'View details' }
               ]}
               data={assets}
               rowKey="id"
               searchKeys={['assetTag', 'name', 'category', 'status']}
               searchPlaceholder="Search assets"
               emptyTitle="No assets"
-              emptyDescription="No assets were returned by the inventory service."
+              emptyDescription="Assets will appear here when they are added to the workspace."
             />
 
             <DataTable
               title="Work orders"
-              description="Manufacturing work orders and status workflow."
+              description="Production work and status updates."
               columns={[
                 { key: 'workOrderNumber', title: 'Work order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.workOrderNumber}</strong><span>{row.productName}</span></div> },
                 { key: 'workCenter', title: 'Work center', sortable: true },
                 { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={workOrderTone(row.status)} /> },
                 { key: 'scheduledStart', title: 'Start', sortable: true, render: (row) => formatDateTime(row.scheduledStart) },
-                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openWorkOrderStatusModal(row)}>Update</button> : 'View' }
+                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openWorkOrderStatusModal(row)}>Update status</button> : 'View details' }
               ]}
               data={workOrders}
               rowKey="id"
               searchKeys={['workOrderNumber', 'productName', 'workCenter', 'status']}
               searchPlaceholder="Search work orders"
               emptyTitle="No work orders"
-              emptyDescription="No work orders were returned by the manufacturing endpoint."
+              emptyDescription="Work orders will appear here after they are created."
             />
           </section>
         </>
       ) : (
-        <EmptyState title="Inventory module hidden" description="The current role does not include inventory-service access." compact />
+        <EmptyState title="Inventory unavailable" description="This account does not currently have access to inventory information." compact />
       )}
 
       <Modal
         open={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
         title={editingCategory ? 'Edit category' : 'Add category'}
-        description="Manage catalog categories for product grouping."
+        description="Create or update a product category."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setCategoryModalOpen(false)}>
@@ -740,7 +740,7 @@ export default function Products() {
         }
       >
         <form id="category-form" className="form-grid" onSubmit={categoryForm.handleSubmit(submitCategory)}>
-          <InputField label="Category name" error={categoryForm.formState.errors.name?.message} registration={categoryForm.register('name', { required: 'Category name is required.' })} />
+          <InputField label="Category name" error={categoryForm.formState.errors.name?.message} registration={categoryForm.register('name', { required: 'Please enter a category name.' })} />
         </form>
       </Modal>
 
@@ -748,7 +748,7 @@ export default function Products() {
         open={supplierModalOpen}
         onClose={() => setSupplierModalOpen(false)}
         title={editingSupplier ? 'Edit supplier' : 'Add supplier'}
-        description="Manage supplier records used by procurement."
+        description="Create or update supplier details."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setSupplierModalOpen(false)}>
@@ -761,10 +761,10 @@ export default function Products() {
         }
       >
         <form id="supplier-form" className="form-grid form-grid--two" onSubmit={supplierForm.handleSubmit(submitSupplier)}>
-          <InputField label="Supplier name" error={supplierForm.formState.errors.name?.message} registration={supplierForm.register('name', { required: 'Supplier name is required.' })} />
-          <InputField label="Contact name" error={supplierForm.formState.errors.contactName?.message} registration={supplierForm.register('contactName', { required: 'Contact name is required.' })} />
-          <InputField label="Email" type="email" error={supplierForm.formState.errors.email?.message} registration={supplierForm.register('email', { required: 'Email is required.' })} />
-          <InputField label="Lead time (days)" type="number" error={supplierForm.formState.errors.leadTimeDays?.message} registration={supplierForm.register('leadTimeDays', { required: 'Lead time is required.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Supplier name" error={supplierForm.formState.errors.name?.message} registration={supplierForm.register('name', { required: 'Please enter a supplier name.' })} />
+          <InputField label="Contact name" error={supplierForm.formState.errors.contactName?.message} registration={supplierForm.register('contactName', { required: 'Please enter a contact name.' })} />
+          <InputField label="Email" type="email" error={supplierForm.formState.errors.email?.message} registration={supplierForm.register('email', { required: 'Please enter an email address.' })} />
+          <InputField label="Lead time (days)" type="number" error={supplierForm.formState.errors.leadTimeDays?.message} registration={supplierForm.register('leadTimeDays', { required: 'Please enter lead time in days.', valueAsNumber: true, min: 1 })} />
         </form>
       </Modal>
 
@@ -772,7 +772,7 @@ export default function Products() {
         open={productModalOpen}
         onClose={() => setProductModalOpen(false)}
         title={editingProduct ? 'Edit product' : 'Add product'}
-        description="Create or update catalog product records."
+        description="Create or update a product."
         size="lg"
         footer={
           <>
@@ -786,9 +786,9 @@ export default function Products() {
         }
       >
         <form id="product-form" className="form-grid form-grid--two" onSubmit={productForm.handleSubmit(submitProduct)}>
-          <InputField label="Product name" error={productForm.formState.errors.name?.message} registration={productForm.register('name', { required: 'Product name is required.' })} />
-          <InputField label="Description" error={productForm.formState.errors.description?.message} registration={productForm.register('description', { required: 'Description is required.' })} />
-          <SelectField label="Category" error={productForm.formState.errors.categoryName?.message} registration={productForm.register('categoryName', { required: 'Category is required.' })}>
+          <InputField label="Product name" error={productForm.formState.errors.name?.message} registration={productForm.register('name', { required: 'Please enter a product name.' })} />
+          <InputField label="Description" error={productForm.formState.errors.description?.message} registration={productForm.register('description', { required: 'Please enter a description.' })} />
+          <SelectField label="Category" error={productForm.formState.errors.categoryName?.message} registration={productForm.register('categoryName', { required: 'Please choose a category.' })}>
             <option value="">Select category</option>
             {categories.map((item) => (
               <option key={item.id} value={item.name}>
@@ -796,7 +796,7 @@ export default function Products() {
               </option>
             ))}
           </SelectField>
-          <SelectField label="Supplier" error={productForm.formState.errors.supplierName?.message} registration={productForm.register('supplierName', { required: 'Supplier is required.' })}>
+          <SelectField label="Supplier" error={productForm.formState.errors.supplierName?.message} registration={productForm.register('supplierName', { required: 'Please choose a supplier.' })}>
             <option value="">Select supplier</option>
             {suppliers.map((item) => (
               <option key={item.id} value={item.name}>
@@ -804,10 +804,10 @@ export default function Products() {
               </option>
             ))}
           </SelectField>
-          <InputField label="Price" type="number" step="0.01" error={productForm.formState.errors.price?.message} registration={productForm.register('price', { required: 'Price is required.', valueAsNumber: true, min: 0 })} />
-          <InputField label="Cost" type="number" step="0.01" error={productForm.formState.errors.cost?.message} registration={productForm.register('cost', { required: 'Cost is required.', valueAsNumber: true, min: 0 })} />
-          <InputField label="Stock quantity" type="number" error={productForm.formState.errors.stockQuantity?.message} registration={productForm.register('stockQuantity', { required: 'Stock quantity is required.', valueAsNumber: true, min: 0 })} />
-          <InputField label="Reorder level" type="number" error={productForm.formState.errors.reorderLevel?.message} registration={productForm.register('reorderLevel', { required: 'Reorder level is required.', valueAsNumber: true, min: 0 })} />
+          <InputField label="Price" type="number" step="0.01" error={productForm.formState.errors.price?.message} registration={productForm.register('price', { required: 'Please enter a price.', valueAsNumber: true, min: 0 })} />
+          <InputField label="Cost" type="number" step="0.01" error={productForm.formState.errors.cost?.message} registration={productForm.register('cost', { required: 'Please enter a cost.', valueAsNumber: true, min: 0 })} />
+          <InputField label="Stock quantity" type="number" error={productForm.formState.errors.stockQuantity?.message} registration={productForm.register('stockQuantity', { required: 'Please enter stock quantity.', valueAsNumber: true, min: 0 })} />
+          <InputField label="Reorder level" type="number" error={productForm.formState.errors.reorderLevel?.message} registration={productForm.register('reorderLevel', { required: 'Please enter a reorder level.', valueAsNumber: true, min: 0 })} />
           <SelectField label="Status" registration={productForm.register('isActive')}>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
@@ -818,22 +818,22 @@ export default function Products() {
       <Modal
         open={adjustmentModalOpen}
         onClose={() => setAdjustmentModalOpen(false)}
-        title={selectedInventoryItem ? `Adjust ${selectedInventoryItem.productName}` : 'Adjust inventory'}
-        description="Record an inventory movement for the selected item."
+        title={selectedInventoryItem ? `Adjust ${selectedInventoryItem.productName}` : 'Adjust stock'}
+        description="Update stock for the selected item."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setAdjustmentModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="adjustment-form" className="primary-button" disabled={adjustmentForm.formState.isSubmitting}>
-              {adjustmentForm.formState.isSubmitting ? 'Saving...' : 'Apply adjustment'}
+              {adjustmentForm.formState.isSubmitting ? 'Saving...' : 'Save stock update'}
             </button>
           </>
         }
       >
         <form id="adjustment-form" className="form-grid" onSubmit={adjustmentForm.handleSubmit(submitAdjustment)}>
-          <InputField label="Quantity delta" type="number" error={adjustmentForm.formState.errors.quantityDelta?.message} registration={adjustmentForm.register('quantityDelta', { required: 'Quantity delta is required.', valueAsNumber: true })} />
-          <InputField label="Reason" error={adjustmentForm.formState.errors.reason?.message} registration={adjustmentForm.register('reason', { required: 'Reason is required.' })} />
+          <InputField label="Quantity change" type="number" error={adjustmentForm.formState.errors.quantityDelta?.message} registration={adjustmentForm.register('quantityDelta', { required: 'Please enter the stock change.', valueAsNumber: true })} />
+          <InputField label="Reason" error={adjustmentForm.formState.errors.reason?.message} registration={adjustmentForm.register('reason', { required: 'Please enter a reason.' })} />
         </form>
       </Modal>
 
@@ -841,20 +841,20 @@ export default function Products() {
         open={purchaseOrderModalOpen}
         onClose={() => setPurchaseOrderModalOpen(false)}
         title="Create purchase order"
-        description="Submit a procurement request for a supplier and product."
+        description="Create a purchase order for a supplier and product."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setPurchaseOrderModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="purchase-order-form" className="primary-button" disabled={purchaseOrderForm.formState.isSubmitting}>
-              {purchaseOrderForm.formState.isSubmitting ? 'Saving...' : 'Create purchase order'}
+              {purchaseOrderForm.formState.isSubmitting ? 'Saving...' : 'Save purchase order'}
             </button>
           </>
         }
       >
         <form id="purchase-order-form" className="form-grid form-grid--two" onSubmit={purchaseOrderForm.handleSubmit(submitPurchaseOrder)}>
-          <SelectField label="Supplier" error={purchaseOrderForm.formState.errors.supplierId?.message} registration={purchaseOrderForm.register('supplierId', { required: 'Supplier is required.' })}>
+          <SelectField label="Supplier" error={purchaseOrderForm.formState.errors.supplierId?.message} registration={purchaseOrderForm.register('supplierId', { required: 'Please choose a supplier.' })}>
             <option value="">Select supplier</option>
             {suppliers.map((item) => (
               <option key={item.id} value={item.id}>
@@ -862,7 +862,7 @@ export default function Products() {
               </option>
             ))}
           </SelectField>
-          <SelectField label="Product" error={purchaseOrderForm.formState.errors.productId?.message} registration={purchaseOrderForm.register('productId', { required: 'Product is required.' })}>
+          <SelectField label="Product" error={purchaseOrderForm.formState.errors.productId?.message} registration={purchaseOrderForm.register('productId', { required: 'Please choose a product.' })}>
             <option value="">Select product</option>
             {products.filter((item) => item.isActive).map((item) => (
               <option key={item.id} value={item.id}>
@@ -870,7 +870,7 @@ export default function Products() {
               </option>
             ))}
           </SelectField>
-          <InputField label="Quantity" type="number" error={purchaseOrderForm.formState.errors.quantity?.message} registration={purchaseOrderForm.register('quantity', { required: 'Quantity is required.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Quantity" type="number" error={purchaseOrderForm.formState.errors.quantity?.message} registration={purchaseOrderForm.register('quantity', { required: 'Please enter a quantity.', valueAsNumber: true, min: 1 })} />
           <InputField label="Notes" error={purchaseOrderForm.formState.errors.notes?.message} registration={purchaseOrderForm.register('notes')} />
         </form>
       </Modal>
@@ -878,22 +878,22 @@ export default function Products() {
       <Modal
         open={receiveModalOpen}
         onClose={() => setReceiveModalOpen(false)}
-        title={selectedPurchaseOrder?.purchaseOrderNumber || 'Receive purchase order'}
-        description="Record receipt and stock update for the selected purchase order."
+        title={selectedPurchaseOrder?.purchaseOrderNumber || 'Receive goods'}
+        description="Record received goods for this purchase order."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setReceiveModalOpen(false)}>
               Cancel
             </button>
             <button type="button" className="primary-button" onClick={() => void receivePurchaseOrder()}>
-              Receive
+              Save receipt
             </button>
           </>
         }
       >
         <div className="form-grid">
           <label className="field">
-            <span className="field__label">Received at</span>
+            <span className="field__label">Received on</span>
             <input className="input" type="datetime-local" value={receiveAt} onChange={(event) => setReceiveAt(event.target.value)} />
           </label>
           <label className="field">
@@ -907,22 +907,22 @@ export default function Products() {
         open={maintenanceModalOpen}
         onClose={() => setMaintenanceModalOpen(false)}
         title={selectedAsset?.assetTag || 'Record maintenance'}
-        description="Capture maintenance execution for the selected asset."
+        description="Record maintenance work for the selected asset."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setMaintenanceModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="maintenance-form" className="primary-button" disabled={maintenanceForm.formState.isSubmitting}>
-              {maintenanceForm.formState.isSubmitting ? 'Saving...' : 'Record maintenance'}
+              {maintenanceForm.formState.isSubmitting ? 'Saving...' : 'Save maintenance'}
             </button>
           </>
         }
       >
         <form id="maintenance-form" className="form-grid form-grid--two" onSubmit={maintenanceForm.handleSubmit(submitMaintenance)}>
           <InputField label="Serviced at" type="datetime-local" error={maintenanceForm.formState.errors.servicedAt?.message} registration={maintenanceForm.register('servicedAt')} />
-          <InputField label="Condition score" type="number" error={maintenanceForm.formState.errors.conditionScore?.message} registration={maintenanceForm.register('conditionScore', { required: 'Condition score is required.', valueAsNumber: true, min: 0, max: 100 })} />
-          <InputField label="Notes" error={maintenanceForm.formState.errors.notes?.message} registration={maintenanceForm.register('notes', { required: 'Notes are required.' })} />
+          <InputField label="Condition score" type="number" error={maintenanceForm.formState.errors.conditionScore?.message} registration={maintenanceForm.register('conditionScore', { required: 'Please enter a condition score.', valueAsNumber: true, min: 0, max: 100 })} />
+          <InputField label="Notes" error={maintenanceForm.formState.errors.notes?.message} registration={maintenanceForm.register('notes', { required: 'Please enter maintenance notes.' })} />
         </form>
       </Modal>
 
@@ -930,14 +930,14 @@ export default function Products() {
         open={workOrderModalOpen}
         onClose={() => setWorkOrderModalOpen(false)}
         title="Create work order"
-        description="Create a manufacturing work order for the selected product."
+        description="Create a new work order for production."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setWorkOrderModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="work-order-form" className="primary-button" disabled={workOrderForm.formState.isSubmitting}>
-              {workOrderForm.formState.isSubmitting ? 'Saving...' : 'Create work order'}
+              {workOrderForm.formState.isSubmitting ? 'Saving...' : 'Save work order'}
             </button>
           </>
         }
@@ -951,10 +951,10 @@ export default function Products() {
               </option>
             ))}
           </SelectField>
-          <InputField label="Fallback product name" error={workOrderForm.formState.errors.productName?.message} registration={workOrderForm.register('productName')} />
-          <InputField label="Work center" error={workOrderForm.formState.errors.workCenter?.message} registration={workOrderForm.register('workCenter', { required: 'Work center is required.' })} />
-          <InputField label="Quantity" type="number" error={workOrderForm.formState.errors.quantity?.message} registration={workOrderForm.register('quantity', { required: 'Quantity is required.', valueAsNumber: true, min: 1 })} />
-          <InputField label="Planned duration (hours)" type="number" error={workOrderForm.formState.errors.plannedDurationHours?.message} registration={workOrderForm.register('plannedDurationHours', { required: 'Duration is required.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Product name (if not selected above)" error={workOrderForm.formState.errors.productName?.message} registration={workOrderForm.register('productName')} />
+          <InputField label="Work center" error={workOrderForm.formState.errors.workCenter?.message} registration={workOrderForm.register('workCenter', { required: 'Please enter a work center.' })} />
+          <InputField label="Quantity" type="number" error={workOrderForm.formState.errors.quantity?.message} registration={workOrderForm.register('quantity', { required: 'Please enter a quantity.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Planned duration (hours)" type="number" error={workOrderForm.formState.errors.plannedDurationHours?.message} registration={workOrderForm.register('plannedDurationHours', { required: 'Please enter the planned duration.', valueAsNumber: true, min: 1 })} />
         </form>
       </Modal>
 
@@ -962,7 +962,7 @@ export default function Products() {
         open={workOrderStatusOpen}
         onClose={() => setWorkOrderStatusOpen(false)}
         title={selectedWorkOrder?.workOrderNumber || 'Update work order'}
-        description="Update the manufacturing workflow status."
+        description="Update the current work order status."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setWorkOrderStatusOpen(false)}>
@@ -1000,7 +1000,8 @@ export default function Products() {
         }}
         onConfirm={() => void archiveProduct()}
         title={archiveTarget ? `Archive ${archiveTarget.name}?` : 'Archive product?'}
-        description="The product will be marked inactive and removed from active catalog workflows."
+        description="The product will be marked inactive and removed from active product lists."
+        note={user?.isDemoUser ? 'This only changes demo workspace data and can be reset from the demo banner.' : undefined}
         confirmLabel="Archive product"
         loading={archiveSubmitting}
       />

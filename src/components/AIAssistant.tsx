@@ -17,9 +17,9 @@ interface AssistantProps {
 
 export default function AIAssistant({
   title = 'Ask ERP',
-  description = 'AI-ready assistant surface for future workflow automation.',
+  description = 'Ask simple questions about the information on this page.',
   initialMessage,
-  placeholder = 'Ask a question about the current ERP data',
+  placeholder = 'Ask about the information on this page',
   suggestions = [],
   generateResponse
 }: AssistantProps) {
@@ -82,7 +82,7 @@ export default function AIAssistant({
       <div className="assistant-card__messages">
         {messages.map((message) => (
           <div key={message.id} className={`assistant-card__message assistant-card__message--${message.role}`}>
-            <span>{message.role === 'assistant' ? 'ERP' : 'You'}</span>
+            <span>{message.role === 'assistant' ? 'ERP Assistant' : 'You'}</span>
             <p>{message.content}</p>
           </div>
         ))}
@@ -95,7 +95,7 @@ export default function AIAssistant({
           placeholder={placeholder}
         />
         <button type="submit" className="primary-button" disabled={loading}>
-          {loading ? 'Thinking...' : 'Ask'}
+          {loading ? 'Getting answer...' : 'Ask'}
         </button>
       </form>
     </section>

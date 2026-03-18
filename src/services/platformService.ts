@@ -1,7 +1,13 @@
-import type { AiReadinessDto, AuditTrailEntryDto, NotificationDto, OutboxMessageDto, PlatformContextDto } from '../types'
+import type { AiReadinessDto, AuditTrailEntryDto, DemoStatusDto, NotificationDto, OutboxMessageDto, PlatformContextDto } from '../types'
 import { requestGet, requestPost } from './apiClient'
 
 export const platformService = {
+  getDemoStatus() {
+    return requestGet<DemoStatusDto>('platform', '/api/demo/status')
+  },
+  resetDemo() {
+    return requestPost<void, Record<string, never>>('platform', '/api/demo/reset', {})
+  },
   getContext() {
     return requestGet<PlatformContextDto>('platform', '/api/platform/context')
   },

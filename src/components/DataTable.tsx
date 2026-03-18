@@ -71,10 +71,10 @@ export default function DataTable<T extends Record<string, unknown>>({
   description,
   loading = false,
   searchKeys = [],
-  searchPlaceholder = 'Search records',
+  searchPlaceholder = 'Search this list',
   toolbar,
-  emptyTitle = 'No records found',
-  emptyDescription = 'Adjust your filters or add a new record to get started.',
+  emptyTitle = 'Nothing to show',
+  emptyDescription = 'Try a different search or check back when more information is available.',
   pageSizeOptions = [5, 10, 20],
   initialPageSize = 10,
   onRowClick
@@ -149,7 +149,7 @@ export default function DataTable<T extends Record<string, unknown>>({
     }
   }
 
-  const totalLabel = `${sortedRows.length} ${sortedRows.length === 1 ? 'record' : 'records'}`
+  const totalLabel = `${sortedRows.length} ${sortedRows.length === 1 ? 'item' : 'items'}`
 
   return (
     <section className="table-card" aria-busy={loading}>
@@ -190,7 +190,7 @@ export default function DataTable<T extends Record<string, unknown>>({
         <>
           <div className="table-scroll">
             <table className="data-table">
-              <caption className="visually-hidden">{title || description || 'Data table'}</caption>
+              <caption className="visually-hidden">{title || description || 'Table view'}</caption>
               <thead>
                 <tr>
                   {columns.map((column) => (
@@ -209,7 +209,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                         >
                           <span>{column.title}</span>
                           <span className="data-table__sort-indicator" aria-hidden="true">
-                            {sortKey === column.key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}
+                            {sortKey === column.key ? (sortDirection === 'asc' ? 'Asc' : 'Desc') : 'Sort'}
                           </span>
                         </button>
                       ) : (
@@ -240,11 +240,11 @@ export default function DataTable<T extends Record<string, unknown>>({
           </div>
           <div className="table-card__footer">
             <span>
-              Showing {pageStart + 1}-{pageEnd} of {sortedRows.length}
+              Showing {pageStart + 1} to {pageEnd} of {sortedRows.length}
             </span>
             <div className="table-card__pagination">
               <label className="visually-hidden" htmlFor={`${searchId}-page-size`}>
-                Rows per page
+                Items per page
               </label>
               <select
                 id={`${searchId}-page-size`}
@@ -254,7 +254,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               >
                 {pageSizeOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option} / page
+                    {option} per page
                   </option>
                 ))}
               </select>

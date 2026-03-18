@@ -62,30 +62,30 @@ function buildAssistantResponse(question: string, dashboard: DashboardState, ins
 
   if (normalizedQuestion.includes('revenue')) {
     const revenue = dashboard.orderMetrics?.revenueLast30Days ?? dashboard.executiveDashboard?.revenueLast30Days ?? 0
-    return `Revenue for the current 30-day view is ${formatCurrency(revenue)}. ${insights[0]?.description || 'No additional revenue insight is available for your role.'}`
+    return `Sales for the last 30 days are ${formatCurrency(revenue)}. ${insights[0]?.description || 'No additional sales insight is available for your access level.'}`
   }
 
   if (normalizedQuestion.includes('stock') || normalizedQuestion.includes('inventory')) {
     const lowStock = dashboard.inventoryDashboard?.lowStockProducts ?? dashboard.executiveDashboard?.lowStockProducts ?? 0
     const inventoryValue = dashboard.inventoryDashboard?.inventoryValue ?? dashboard.catalogOverview?.inventoryValue ?? 0
-    return `${lowStock} products are currently flagged for low stock, with inventory value at ${formatCurrency(inventoryValue)}.`
+    return `${lowStock} products are currently low on stock, with inventory valued at ${formatCurrency(inventoryValue)}.`
   }
 
   if (normalizedQuestion.includes('customer')) {
     const topCustomer = dashboard.topCustomers[0]
     return topCustomer
-      ? `${topCustomer.name} is the strongest current customer signal with lifetime value of ${formatCurrency(topCustomer.lifetimeValue)} and outstanding balance of ${formatCurrency(topCustomer.outstandingBalance)}.`
-      : 'Customer intelligence is not available for your current access scope.'
+      ? `${topCustomer.name} is the leading customer right now, with lifetime value of ${formatCurrency(topCustomer.lifetimeValue)} and an open balance of ${formatCurrency(topCustomer.outstandingBalance)}.`
+      : 'Customer details are not available for your current access level.'
   }
 
   if (normalizedQuestion.includes('alert') || normalizedQuestion.includes('anomal')) {
     const alertCount = dashboard.alerts.length + dashboard.anomalies.length
     return alertCount > 0
-      ? `There are ${alertCount} active alerts or anomaly indicators across the services visible to your role. Prioritize the highest severity records in the activity and anomaly panels.`
-      : 'No alerting signals are currently active in the services visible to your role.'
+      ? `There are ${alertCount} active warnings or unusual items in the areas available to you. Start with the highest-priority items in Recent activity and Priority items.`
+      : 'There are no active warnings in the areas currently available to you.'
   }
 
-  return insights[0]?.description || 'The dashboard is ready. Ask about revenue, stock, customers, or operational alerts.'
+  return insights[0]?.description || 'The dashboard is ready. Ask about sales, stock, customers, or priority items.'
 }
 
 export default function Dashboard() {
@@ -185,16 +185,16 @@ export default function Dashboard() {
 
     if (dashboard.orderMetrics || dashboard.executiveDashboard) {
       cards.push({
-        label: 'Revenue (30 days)',
+        label: 'Sales last 30 days',
         value: dashboard.orderMetrics?.revenueLast30Days ?? dashboard.executiveDashboard?.revenueLast30Days ?? 0,
         format: 'currency' as const,
-        subtitle: 'Sales and billing services'
+        subtitle: 'Recent sales activity'
       })
       cards.push({
         label: 'Open Orders',
         value: dashboard.orderMetrics?.openOrders ?? dashboard.executiveDashboard?.openOrders ?? 0,
         format: 'number' as const,
-        subtitle: 'Pending operational throughput'
+        subtitle: 'Orders still in progress'
       })
     }
 
@@ -203,32 +203,32 @@ export default function Dashboard() {
         label: 'Inventory Value',
         value: dashboard.inventoryDashboard?.inventoryValue ?? dashboard.catalogOverview?.inventoryValue ?? 0,
         format: 'currency' as const,
-        subtitle: 'Catalog and warehouse exposure'
+        subtitle: 'Current stock value'
       })
     }
 
     if (dashboard.financeDashboard || dashboard.executiveDashboard) {
       cards.push({
-        label: 'Overdue Exposure',
+        label: 'Past-due balance',
         value: dashboard.financeDashboard?.overdueReceivables ?? dashboard.executiveDashboard?.outstandingBalance ?? 0,
         format: 'currency' as const,
-        subtitle: 'Receivables requiring attention'
+        subtitle: 'Open balance needing follow-up'
       })
     }
 
     if (cards.length === 0) {
       cards.push(
         {
-          label: 'Unread Notifications',
+          label: 'Unread updates',
           value: dashboard.notifications.filter((item) => !item.isRead).length,
           format: 'number' as const,
-          subtitle: 'Cross-service operational feed'
+          subtitle: 'New updates to review'
         },
         {
-          label: 'Assigned Roles',
+          label: 'Access roles',
           value: user?.roles.length ?? 0,
           format: 'number' as const,
-          subtitle: 'Current identity scope'
+          subtitle: 'Roles on this account'
         }
       )
     }
@@ -239,11 +239,11 @@ export default function Dashboard() {
   const lineChart = useMemo(() => {
     if (dashboard.cashForecasts.length > 0) {
       return {
-        title: 'Cash forecast',
-        description: 'Expected collections and open receivables across finance horizons.',
+        title: 'Cash outlook',
+        description: 'Expected incoming cash and open balances over the next few planning periods.',
         valueLabel: 'currency' as const,
-        primaryLabel: 'Expected collections',
-        secondaryLabel: 'Open receivables',
+        primaryLabel: 'Expected cash in',
+        secondaryLabel: 'Open balance',
         data: dashboard.cashForecasts.map<TrendDatum>((item) => ({
           label: `${item.horizonDays}d`,
           value: item.expectedCollections,
@@ -254,11 +254,11 @@ export default function Dashboard() {
 
     if (dashboard.demandForecast.length > 0) {
       return {
-        title: 'Demand signal',
-        description: 'Forecast units for the products with the highest near-term demand.',
+        title: 'Demand outlook',
+        description: 'Expected demand for the products most likely to need attention soon.',
         valueLabel: 'number' as const,
-        primaryLabel: 'Forecast units',
-        secondaryLabel: 'Forecast units',
+        primaryLabel: 'Expected units',
+        secondaryLabel: 'Expected units',
         data: dashboard.demandForecast.map<TrendDatum>((item) => ({
           label: item.productName,
           value: item.forecastUnits
@@ -272,8 +272,8 @@ export default function Dashboard() {
   const barData = useMemo(() => {
     if (dashboard.demandForecast.length > 0) {
       return {
-        title: 'Top forecasted demand',
-        description: 'Products likely to drive replenishment pressure in the next planning window.',
+        title: 'Expected demand',
+        description: 'Products most likely to drive replenishment needs soon.',
         valueLabel: 'number' as const,
         data: dashboard.demandForecast.map<ChartDatum>((item) => ({
           label: item.productName,
@@ -285,7 +285,7 @@ export default function Dashboard() {
     if (dashboard.topCustomers.length > 0) {
       return {
         title: 'Top customers',
-        description: 'Highest lifetime value customers from the sales service.',
+        description: 'Customers contributing the most long-term value.',
         valueLabel: 'currency' as const,
         data: dashboard.topCustomers.map<ChartDatum>((item) => ({
           label: item.name,
@@ -303,8 +303,8 @@ export default function Dashboard() {
     if (dashboard.executiveDashboard && dashboard.executiveDashboard.lowStockProducts > 0) {
       items.push({
         id: 'stock-pressure',
-        title: 'Low-stock pressure is building',
-        description: `${dashboard.executiveDashboard.lowStockProducts} SKUs are low on stock with ${formatCurrency(dashboard.executiveDashboard.atRiskRevenue)} of revenue at risk.`,
+        title: 'Low stock needs attention',
+        description: `${dashboard.executiveDashboard.lowStockProducts} products are running low, with ${formatCurrency(dashboard.executiveDashboard.atRiskRevenue)} in sales potentially affected.`,
         tone: 'warning'
       })
     }
@@ -312,8 +312,8 @@ export default function Dashboard() {
     if (dashboard.financeDashboard && dashboard.financeDashboard.workingCapitalIndicator >= 1) {
       items.push({
         id: 'working-capital',
-        title: 'Working capital remains stable',
-        description: `Working capital indicator is ${dashboard.financeDashboard.workingCapitalIndicator.toFixed(2)} with payroll run rate at ${formatCurrency(dashboard.financeDashboard.monthlyPayrollRunRate)}.`,
+        title: 'Cash position is steady',
+        description: `Working capital is ${dashboard.financeDashboard.workingCapitalIndicator.toFixed(2)} with payroll running at ${formatCurrency(dashboard.financeDashboard.monthlyPayrollRunRate)} per month.`,
         tone: 'success'
       })
     }
@@ -321,7 +321,7 @@ export default function Dashboard() {
     if (dashboard.topCustomers[0]) {
       items.push({
         id: 'customer-focus',
-        title: 'Customer concentration is visible',
+        title: 'One customer stands out',
         description: `${dashboard.topCustomers[0].name} currently leads customer value with ${formatCurrency(dashboard.topCustomers[0].lifetimeValue)} in lifetime value.`,
         tone: 'info'
       })
@@ -330,7 +330,7 @@ export default function Dashboard() {
     if (dashboard.aiReadiness) {
       items.push({
         id: 'ai-readiness',
-        title: 'AI readiness is configured',
+        title: 'AI setup is available',
         description: `${dashboard.aiReadiness.provider} is ${dashboard.aiReadiness.aiEnabled ? 'enabled' : 'disabled'} with ${dashboard.aiReadiness.useCases.filter((item) => item.enabled).length} active use cases.`,
         tone: dashboard.aiReadiness.aiEnabled ? 'success' : 'warning'
       })
@@ -339,8 +339,8 @@ export default function Dashboard() {
     if (items.length === 0) {
       items.push({
         id: 'baseline',
-        title: 'Dashboard is active',
-        description: 'Notifications and service health data are available even when role-restricted modules are hidden.',
+        title: 'Dashboard is ready',
+        description: 'Updates and account-level information are available even when some areas are hidden by role.',
         tone: 'info'
       })
     }
@@ -349,22 +349,22 @@ export default function Dashboard() {
   }, [dashboard.aiReadiness, dashboard.executiveDashboard, dashboard.financeDashboard, dashboard.topCustomers])
 
   if (loading) {
-    return <Spinner fullPage label="Loading cross-service dashboard" />
+    return <Spinner fullPage label="Loading your dashboard" />
   }
 
   const hasPrimaryData =
     statCards.length > 0 || dashboard.notifications.length > 0 || dashboard.topCustomers.length > 0 || dashboard.anomalies.length > 0
 
   if (!hasPrimaryData) {
-    return <EmptyState title="Dashboard unavailable" description="No accessible dashboard services returned data for the current session." />
+    return <EmptyState title="Dashboard unavailable" description="We could not load dashboard information for this session." />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Overview"
-        title="Enterprise dashboard"
-        description="Track core KPIs, operational risk, and AI-ready insights in a single executive workspace designed for fast daily review."
+        title="Business overview"
+        description="Review sales, cash, stock, and recent updates in one place."
       />
 
       <section className="stat-grid">
@@ -378,7 +378,7 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>{lineChart?.title || 'Forecast trend'}</h3>
-              <p>{lineChart?.description || 'Trend data becomes available when finance or inventory forecasting endpoints are accessible.'}</p>
+              <p>{lineChart?.description || 'Trend information appears here when forecast data is available.'}</p>
             </div>
           </div>
           {lineChart ? (
@@ -389,7 +389,7 @@ export default function Dashboard() {
               secondaryLabel={lineChart.secondaryLabel}
             />
           ) : (
-            <EmptyState title="Trend data unavailable" description="No forecast-capable service is visible to your role." compact />
+            <EmptyState title="Trend data unavailable" description="Forecast information is not available for your current access level." compact />
           )}
         </article>
 
@@ -397,13 +397,13 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>{barData?.title || 'Operational mix'}</h3>
-              <p>{barData?.description || 'Open catalog or sales access to populate the comparison chart.'}</p>
+              <p>{barData?.description || 'Comparison details appear here when customer or demand data is available.'}</p>
             </div>
           </div>
           {barData ? (
             <CategoryBarChart data={barData.data} valueLabel={barData.valueLabel} />
           ) : (
-            <EmptyState title="Comparison unavailable" description="No ranked comparison data is available for the current role scope." compact />
+            <EmptyState title="Comparison unavailable" description="There is no ranked comparison data available for your current access level." compact />
           )}
         </article>
       </section>
@@ -413,11 +413,11 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>Recent activity</h3>
-              <p>Notification feed spanning platform events, alerts, and workflow signals.</p>
+              <p>Recent updates, reminders, and workflow changes.</p>
             </div>
           </div>
           {dashboard.notifications.length === 0 ? (
-            <EmptyState title="No recent notifications" description="The notification feed is currently clear." compact />
+            <EmptyState title="No recent updates" description="There are no new updates to review right now." compact />
           ) : (
             <div className="stack-list">
               {dashboard.notifications.map((item) => (
@@ -438,7 +438,7 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>Insights panel</h3>
-              <p>Backend-derived commentary prepared for future AI or predictive workflows.</p>
+              <p>Short highlights to help you focus on what needs attention.</p>
             </div>
           </div>
           <div className="stack-list">
@@ -460,11 +460,11 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>Top customers</h3>
-              <p>Customer concentration and outstanding balance from the sales domain.</p>
+              <p>Customers generating the most value and open balance.</p>
             </div>
           </div>
           {dashboard.topCustomers.length === 0 ? (
-            <EmptyState title="Customer intelligence unavailable" description="Sales access is required to view customer ranking." compact />
+            <EmptyState title="Customer details unavailable" description="Customer rankings are not available for your current access level." compact />
           ) : (
             <div className="stack-list">
               {dashboard.topCustomers.map((customer) => (
@@ -487,11 +487,11 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>Anomaly indicators</h3>
-              <p>Signals aggregated from inventory and payment anomaly endpoints.</p>
+              <p>Priority items that may need follow-up.</p>
             </div>
           </div>
           {dashboard.anomalies.length === 0 ? (
-            <EmptyState title="No anomalies detected" description="No anomaly service returned actionable signals." compact />
+            <EmptyState title="No priority items" description="There are no unusual items needing attention right now." compact />
           ) : (
             <div className="stack-list">
               {dashboard.anomalies.map((item) => (
@@ -513,7 +513,7 @@ export default function Dashboard() {
           <div className="section-heading">
             <div>
               <h3>Finance alerts</h3>
-              <p>Executive and collections alerts surfaced from the finance services.</p>
+              <p>Items needing follow-up from billing and collections.</p>
             </div>
           </div>
           <div className="stack-list">
@@ -531,7 +531,7 @@ export default function Dashboard() {
       ) : null}
 
       <AIAssistant
-        initialMessage="I can summarize the dashboard signals visible to your current role. Ask about revenue, stock, customers, or alerts."
+        initialMessage="I can summarize the key numbers and highlights on this dashboard. Ask about sales, stock, customers, or priority items."
         suggestions={['Where is the biggest operational risk?', 'Summarize revenue and receivables', 'What should ops review first?']}
         generateResponse={(question) => buildAssistantResponse(question, dashboard, insights)}
       />

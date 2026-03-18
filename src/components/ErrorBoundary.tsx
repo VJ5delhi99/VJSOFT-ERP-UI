@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       return (
         <div className="error-boundary">
           <h2>Something went wrong</h2>
-          <p>The screen failed to render. Refresh the page or try again later.</p>
+          <p>This screen could not be displayed. Refresh the page or try again in a moment.</p>
         </div>
       )
     }

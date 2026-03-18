@@ -61,8 +61,8 @@ export default function Settings() {
         url,
         note:
           service === 'platform'
-            ? 'Platform endpoints are mounted on a service host and expose context, notifications, and admin telemetry.'
-            : 'Base URL is environment-driven and should map to the corresponding microservice.'
+            ? 'Handles shared workspace details, updates, and admin tools.'
+            : 'Set from configuration for this area of the ERP.'
       })),
     []
   )
@@ -75,19 +75,19 @@ export default function Settings() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Settings"
-        title="Environment settings"
-        description="Review session details, service endpoints, and AI readiness settings that affect how the ERP workspace operates."
+        title="System settings"
+        description="Review sign-in details, connected services, and AI setup for this workspace."
       />
 
       <section className="stat-grid">
-        <StatCard label="Registered services" value={services.length} format="number" subtitle="Environment URL registry" />
-        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Current session scope" />
-        <StatCard label="Effective permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Current RBAC grants" />
+        <StatCard label="Connected services" value={services.length} format="number" subtitle="Available system connections" />
+        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles on this account" />
+        <StatCard label="Effective permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Available actions" />
         <StatCard
           label="AI use cases"
           value={aiReadiness?.useCases.filter((item) => item.enabled).length ?? 0}
           format="number"
-          subtitle="Admin-visible readiness catalog"
+          subtitle="Active AI setup items"
         />
       </section>
 
@@ -95,13 +95,13 @@ export default function Settings() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Session context</h3>
-              <p>Authentication and tenant state persisted in the frontend store.</p>
+              <h3>Session details</h3>
+              <p>Current sign-in details for this workspace.</p>
             </div>
           </div>
           <div className="detail-grid">
             <div className="detail-card">
-              <h4>Authenticated user</h4>
+              <h4>Signed-in user</h4>
               <dl className="detail-list">
                 <div>
                   <dt>User</dt>
@@ -112,7 +112,7 @@ export default function Settings() {
                   <dd>{user?.email || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Tenant</dt>
+                  <dt>Workspace</dt>
                   <dd>{user?.tenantId || '-'}</dd>
                 </div>
                 <div>
@@ -123,14 +123,14 @@ export default function Settings() {
             </div>
 
             <div className="detail-card">
-              <h4>Platform runtime</h4>
+              <h4>System details</h4>
               <dl className="detail-list">
                 <div>
                   <dt>Environment</dt>
                   <dd>{apiConfig.environment}</dd>
                 </div>
                 <div>
-                  <dt>Correlation id</dt>
+                  <dt>Support reference</dt>
                   <dd>{context?.correlationId || '-'}</dd>
                 </div>
                 <div>
@@ -149,39 +149,39 @@ export default function Settings() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Integration notes</h3>
-              <p>Operational expectations for frontend to microservice communication.</p>
+              <h3>Connection notes</h3>
+              <p>Helpful reminders about how this workspace connects to the ERP.</p>
             </div>
           </div>
           <div className="stack-list">
             <div className="list-row list-row--stacked">
               <div>
-                <strong>All services are config-driven</strong>
-                <p>Module pages consume the shared service registry through centralized Axios clients instead of embedding hostnames in components.</p>
+                <strong>Connections are config-driven</strong>
+                <p>Each module uses the shared service list instead of storing addresses inside pages.</p>
               </div>
-              <StatusBadge label="Config-first" tone="success" />
+              <StatusBadge label="Configured" tone="success" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Tenant header must be forwarded</strong>
-                <p>The request interceptor attaches the tenant header from the authenticated user and the platform validates it against JWT claims.</p>
+                <strong>Workspace information is sent with each request</strong>
+                <p>The app includes the signed-in workspace so each service returns the right data.</p>
               </div>
               <StatusBadge label="Required" tone="warning" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Cross-origin access must be enabled operationally</strong>
-                <p>When the frontend runs on a different origin than the services, the backend environment must allow that origin or a proxy must be used.</p>
+                <strong>Browsers must be allowed to reach each service</strong>
+                <p>If the app and APIs run on different addresses, those connections must be allowed in the environment.</p>
               </div>
-              <StatusBadge label="Deployment check" tone="danger" />
+              <StatusBadge label="Check setup" tone="danger" />
             </div>
           </div>
         </article>
       </section>
 
       <DataTable
-        title="Service registry"
-        description="Environment-backed base URLs for each microservice module."
+        title="Connected services"
+        description="Connection details for each ERP area."
         columns={[
           {
             key: 'service',
@@ -196,7 +196,7 @@ export default function Settings() {
           },
           {
             key: 'url',
-            title: 'Base URL',
+            title: 'Address',
             render: (row) => row.url
           }
         ]}
@@ -209,8 +209,8 @@ export default function Settings() {
       <article className="surface-card">
         <div className="section-heading">
           <div>
-            <h3>AI readiness</h3>
-            <p>Admin-only platform readiness exposed through the platform API.</p>
+            <h3>AI setup</h3>
+            <p>Available AI provider and use-case setup for this workspace.</p>
           </div>
         </div>
         {aiReadiness ? (
@@ -218,7 +218,7 @@ export default function Settings() {
             <div className="list-row">
               <div>
                 <strong>{aiReadiness.provider}</strong>
-                <p>Configured AI provider</p>
+                <p>Current provider</p>
               </div>
               <StatusBadge label={aiReadiness.aiEnabled ? 'Enabled' : 'Disabled'} tone={aiReadiness.aiEnabled ? 'success' : 'warning'} />
             </div>
@@ -236,8 +236,8 @@ export default function Settings() {
           </div>
         ) : (
           <EmptyState
-            title="AI readiness is restricted"
-            description="The platform exposes AI readiness only to users with the user-management permission."
+            title="AI setup is limited"
+            description="AI setup details are available only to users who manage access."
             compact
           />
         )}

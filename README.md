@@ -6,6 +6,16 @@ React + Vite frontend for the Edgeonix ERP workspace.
 
 The production image builds the SPA with Vite and serves it from nginx.
 
+## Demo mode
+
+When the backend demo tenant is enabled, the login page exposes one-click demo sign-in for:
+
+- `admin@demo.com`
+- `manager@demo.com`
+- `user@demo.com`
+
+All three accounts use `Password123!`. Demo sessions show a global banner inside the ERP shell and can reset the seeded demo tenant through `POST /api/demo/reset`.
+
 ### Build
 
 ```powershell

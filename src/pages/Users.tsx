@@ -106,7 +106,7 @@ export default function Users() {
   }, [])
 
   if (loading) {
-    return <Spinner fullPage label="Loading access control workspace" />
+    return <Spinner fullPage label="Loading access information" />
   }
 
   const pendingOutbox = outboxMessages.filter((item) =>
@@ -117,23 +117,23 @@ export default function Users() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Access"
-        title="Access control"
-        description="Review role coverage, audit activity, and platform message flow without leaving the ERP workspace."
+        title="User access"
+        description="Review access roles, recent activity, and message delivery in one place."
       />
 
       <section className="stat-grid">
-        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Current authenticated principal" />
-        <StatCard label="Effective permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Resolved from role catalog" />
-        <StatCard label="Audit entries" value={auditTrail.length} format="number" subtitle="Recent platform audit trail" />
-        <StatCard label="Pending outbox" value={pendingOutbox} format="number" subtitle="Messages awaiting downstream delivery" />
+        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles on this account" />
+        <StatCard label="Effective permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Available actions" />
+        <StatCard label="Recent activity" value={auditTrail.length} format="number" subtitle="Latest access and admin changes" />
+        <StatCard label="Pending messages" value={pendingOutbox} format="number" subtitle="Updates waiting to be delivered" />
       </section>
 
       <section className="dashboard-grid dashboard-grid--balanced">
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Current principal</h3>
-              <p>AuthService identity and runtime tenant context for the signed-in user.</p>
+              <h3>Signed-in user</h3>
+              <p>Signed-in user details and current workspace information.</p>
             </div>
           </div>
           <div className="detail-grid">
@@ -149,7 +149,7 @@ export default function Users() {
                   <dd>{user?.email || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Tenant</dt>
+                  <dt>Workspace</dt>
                   <dd>{user?.tenantId || '-'}</dd>
                 </div>
                 <div>
@@ -160,14 +160,14 @@ export default function Users() {
             </div>
 
             <div className="detail-card">
-              <h4>Platform context</h4>
+              <h4>Session details</h4>
               <dl className="detail-list">
                 <div>
                   <dt>User id</dt>
                   <dd>{context?.userId || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Correlation id</dt>
+                  <dt>Support reference</dt>
                   <dd>{context?.correlationId || '-'}</dd>
                 </div>
                 <div>
@@ -186,39 +186,39 @@ export default function Users() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Backend capability boundary</h3>
-              <p>The current platform does not expose `/api/users` or tenant CRUD endpoints.</p>
+              <h3>What this page covers</h3>
+              <p>This area focuses on user access, activity history, and message delivery.</p>
             </div>
           </div>
           <div className="stack-list">
             <div className="list-row list-row--stacked">
               <div>
-                <strong>User lifecycle remains service-owned</strong>
-                <p>Frontend RBAC is enforced from JWT roles and permissions plus backend authorization policies.</p>
+                <strong>User access is role-based</strong>
+                <p>Pages and actions follow the same role and permission rules used by the backend.</p>
               </div>
-              <StatusBadge label="Auth contract" tone="info" />
+              <StatusBadge label="Access rules" tone="info" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Audit and outbox are operational controls</strong>
-                <p>Admin users can review changes, integration events, and role coverage without fabricating unsupported CRUD flows.</p>
+                <strong>Activity and message delivery are visible here</strong>
+                <p>Administrators can review recent changes and outbound updates from one page.</p>
               </div>
-              <StatusBadge label="Platform APIs" tone="success" />
+              <StatusBadge label="Admin tools" tone="success" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Role policies drive UI visibility</strong>
-                <p>Page access and action buttons follow the same policy boundaries used by the microservices.</p>
+                <strong>Visibility stays aligned with access</strong>
+                <p>Menu items and buttons only appear when the signed-in role can use them.</p>
               </div>
-              <StatusBadge label="RBAC aligned" tone="warning" />
+              <StatusBadge label="Aligned" tone="warning" />
             </div>
           </div>
         </article>
       </section>
 
       <DataTable
-        title="Role catalog"
-        description="Roles and effective permissions mirrored from the backend authorization catalog."
+        title="Roles and access"
+        description="Roles and the actions available to each one."
         columns={[
           {
             key: 'role',
@@ -233,24 +233,24 @@ export default function Users() {
           },
           {
             key: 'modules',
-            title: 'Module coverage',
-            render: (row) => row.modules.join(', ') || 'Authenticated only'
+            title: 'Areas',
+            render: (row) => row.modules.join(', ') || 'Signed-in access only'
           },
           {
             key: 'permissions',
             title: 'Permissions',
-            render: (row) => (row.permissions.length > 0 ? row.permissions.join(', ') : 'Inherited by role only')
+            render: (row) => (row.permissions.length > 0 ? row.permissions.join(', ') : 'Handled through the role')
           }
         ]}
         data={roleMatrix}
         rowKey="id"
         searchKeys={['role', 'modules', 'permissions']}
-        searchPlaceholder="Search roles, modules, or permissions"
+        searchPlaceholder="Search roles, areas, or permissions"
       />
 
       <DataTable
-        title="Audit trail"
-        description="Recent platform actions visible to administrators with user-management permission."
+        title="Recent activity"
+        description="Recent access and admin changes."
         columns={[
           {
             key: 'occurredAt',
@@ -289,14 +289,14 @@ export default function Users() {
         data={auditTrail}
         rowKey="id"
         searchKeys={['userName', 'action', 'entityType', 'details']}
-        searchPlaceholder="Search audit records"
-        emptyTitle="No audit activity"
-        emptyDescription="No audit entries were returned for the current tenant."
+        searchPlaceholder="Search recent activity"
+        emptyTitle="No recent activity"
+        emptyDescription="There are no recent access or admin updates to review."
       />
 
       <DataTable
-        title="Outbox monitor"
-        description="Operational integration messages emitted by the platform outbox."
+        title="Message delivery"
+        description="Outbound messages and delivery progress."
         columns={[
           {
             key: 'occurredAt',
@@ -317,7 +317,7 @@ export default function Users() {
           },
           {
             key: 'aggregateType',
-            title: 'Aggregate',
+            title: 'Reference',
             sortable: true,
             render: (row) => `${row.aggregateType}${row.aggregateId ? ` / ${row.aggregateId}` : ''}`
           },
@@ -337,13 +337,13 @@ export default function Users() {
         data={outboxMessages}
         rowKey="id"
         searchKeys={['topic', 'eventType', 'aggregateType', 'status']}
-        searchPlaceholder="Search outbox messages"
-        emptyTitle="No outbox messages"
-        emptyDescription="No integration events were returned for the current tenant."
+        searchPlaceholder="Search messages"
+        emptyTitle="No messages"
+        emptyDescription="There are no outbound messages to review right now."
       />
 
       {auditTrail.length === 0 && outboxMessages.length === 0 ? (
-        <EmptyState title="Admin telemetry is quiet" description="Audit and outbox streams did not return recent entries." compact />
+        <EmptyState title="Nothing new to review" description="Recent activity and message delivery are both clear right now." compact />
       ) : null}
     </div>
   )

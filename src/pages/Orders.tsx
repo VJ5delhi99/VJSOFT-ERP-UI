@@ -214,7 +214,7 @@ export default function Orders() {
 
   async function submitCustomer(values: CustomerFormValues) {
     await salesService.createCustomer(values)
-    showToast('Customer created', `${values.name} was added to the sales workspace.`, 'success')
+    showToast('Customer added', `${values.name} is now available in your workspace.`, 'success')
     setCustomerModalOpen(false)
     await loadSalesOps()
   }
@@ -225,7 +225,7 @@ export default function Orders() {
       paymentMethod: values.paymentMethod,
       lines: [{ productId: values.productId, quantity: Number(values.quantity) }]
     })
-    showToast('Order created', 'A new order was submitted to the order-processing service.', 'success')
+    showToast('Order created', 'The customer order has been saved.', 'success')
     setOrderModalOpen(false)
     await loadSalesOps()
   }
@@ -238,7 +238,7 @@ export default function Orders() {
       budget: Number(values.budget),
       dueDate: new Date(values.dueDate).toISOString()
     })
-    showToast('Project created', `${values.name} was added to the operations portfolio.`, 'success')
+    showToast('Project added', `${values.name} has been added to the work plan.`, 'success')
     setProjectModalOpen(false)
     await loadSalesOps()
   }
@@ -252,7 +252,7 @@ export default function Orders() {
       assignedTeam: values.assignedTeam,
       dueInHours: Number(values.dueInHours)
     })
-    showToast('Ticket created', 'The service ticket was created in the operations queue.', 'success')
+    showToast('Case created', 'The support case has been added to the queue.', 'success')
     setTicketModalOpen(false)
     await loadSalesOps()
   }
@@ -307,26 +307,26 @@ export default function Orders() {
         percentComplete: pendingProjectPercent
       })
       setWorkflowTarget({ kind: 'project', record: updated })
-      showToast('Project updated', `${updated.projectCode} moved to ${updated.status}.`, 'success')
+      showToast('Project updated', `${updated.projectCode} is now ${updated.status}.`, 'success')
     } else {
       const updated = await salesService.updateTicketStatus(workflowTarget.record.id, { status: pendingWorkflowStatus })
       setWorkflowTarget({ kind: 'ticket', record: updated })
-      showToast('Ticket updated', `${updated.ticketNumber} moved to ${updated.status}.`, 'success')
+      showToast('Case updated', `${updated.ticketNumber} is now ${updated.status}.`, 'success')
     }
 
     await loadSalesOps()
   }
 
   if (loading) {
-    return <Spinner fullPage label="Loading sales and operations workspace" />
+    return <Spinner fullPage label="Loading sales and service information" />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Sales Ops"
-        title="Sales and service operations"
-        description="Manage customers, orders, delivery projects, and service tickets with fewer clicks and clearer workflow visibility."
+        eyebrow="Sales & Service"
+        title="Sales and service"
+        description="Manage customers, orders, projects, and support work in one place."
         actions={
           <>
             {canViewSales ? (
@@ -336,17 +336,17 @@ export default function Orders() {
             ) : null}
             {canViewSales && canViewCatalog ? (
               <button type="button" className="primary-button" onClick={openOrderModal} disabled={customers.length === 0 || products.length === 0}>
-                Create order
+                New order
               </button>
             ) : null}
             {canViewOperations ? (
               <button type="button" className="ghost-button" onClick={openProjectModal}>
-                Create project
+                New project
               </button>
             ) : null}
             {canViewOperations ? (
               <button type="button" className="ghost-button" onClick={openTicketModal}>
-                Log ticket
+                New support case
               </button>
             ) : null}
           </>
@@ -354,123 +354,123 @@ export default function Orders() {
       />
 
       <section className="stat-grid">
-        <StatCard label="Open orders" value={metrics?.openOrders ?? orders.length} format="number" subtitle="Sales fulfillment queue" />
-        <StatCard label="Completed orders" value={metrics?.completedOrders ?? 0} format="number" subtitle="Closed order throughput" />
-        <StatCard label="Revenue (30 days)" value={metrics?.revenueLast30Days ?? 0} format="currency" subtitle="Recent commercial activity" />
-        <StatCard label="Operational backlog" value={operationalBacklog} format="number" subtitle="Projects and tickets still open" />
+        <StatCard label="Open orders" value={metrics?.openOrders ?? orders.length} format="number" subtitle="Orders still in progress" />
+        <StatCard label="Completed orders" value={metrics?.completedOrders ?? 0} format="number" subtitle="Orders finished recently" />
+        <StatCard label="Sales last 30 days" value={metrics?.revenueLast30Days ?? 0} format="currency" subtitle="Recent sales activity" />
+        <StatCard label="Open work" value={operationalBacklog} format="number" subtitle="Projects and cases still open" />
       </section>
 
       {canViewSales ? (
         <>
           <DataTable
             title="Orders"
-            description="Order list, workflow status, and detail drill-down for the sales domain."
+            description="Review customer orders, current status, and order details."
             columns={[
               { key: 'orderNumber', title: 'Order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.orderNumber}</strong><span>{row.customerName}</span></div> },
               { key: 'orderDate', title: 'Ordered', sortable: true, render: (row) => formatDate(row.orderDate) },
               { key: 'totalAmount', title: 'Total', sortable: true, align: 'right', render: (row) => formatCurrency(row.totalAmount) },
               { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={orderTone(row.status)} /> },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openOrderDetail(row.id)}>View detail</button> }
+              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openOrderDetail(row.id)}>View details</button> }
             ]}
             data={orders}
             rowKey="id"
             searchKeys={['orderNumber', 'customerName', 'status']}
             searchPlaceholder="Search orders"
             toolbar={<select className="select" value={orderStatusFilter} onChange={(event) => setOrderStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Processing">Processing</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select>}
-            emptyTitle="No orders returned"
-            emptyDescription="No order records matched the current filter."
+            emptyTitle="No orders found"
+            emptyDescription="Try a different filter or come back after new orders are created."
           />
 
           <DataTable
             title="Customers"
-            description="Customer master view with intelligence drill-down from the sales service."
+            description="Review customers and open a quick summary for each account."
             columns={[
               { key: 'name', title: 'Customer', sortable: true, render: (row) => <div className="table-primary"><strong>{row.name}</strong><span>{row.email}</span></div> },
               { key: 'segment', title: 'Segment', sortable: true, render: (row) => <StatusBadge label={row.segment} tone="info" /> },
               { key: 'lifetimeValue', title: 'Lifetime value', sortable: true, align: 'right', render: (row) => formatCurrency(row.lifetimeValue) },
               { key: 'outstandingBalance', title: 'Outstanding', sortable: true, align: 'right', render: (row) => formatCurrency(row.outstandingBalance) },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openCustomerIntelligence(row.id)}>View intelligence</button> }
+              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openCustomerIntelligence(row.id)}>View insights</button> }
             ]}
             data={customers}
             rowKey="id"
             searchKeys={['name', 'email', 'segment', 'contactNumber']}
             searchPlaceholder="Search customers"
             toolbar={<select className="select" value={customerSegmentFilter} onChange={(event) => setCustomerSegmentFilter(event.target.value)}><option value="">All segments</option><option value="SMB">SMB</option><option value="Enterprise">Enterprise</option><option value="Strategic">Strategic</option></select>}
-            emptyTitle="No customers returned"
-            emptyDescription="No customers matched the selected segment."
+            emptyTitle="No customers found"
+            emptyDescription="Try a different segment or add a new customer."
           />
         </>
       ) : (
-        <EmptyState title="Sales module hidden" description="The current role does not include sales-domain access." compact />
+        <EmptyState title="Sales area unavailable" description="This account does not currently have access to sales information." compact />
       )}
 
       {canViewOperations ? (
         <section className="dashboard-grid dashboard-grid--balanced">
           <DataTable
             title="Projects"
-            description="Operations project portfolio and status workflow."
+            description="Track project progress, customer commitments, and current status."
             columns={[
               { key: 'projectCode', title: 'Project', sortable: true, render: (row) => <div className="table-primary"><strong>{row.projectCode}</strong><span>{row.name}</span></div> },
               { key: 'customerName', title: 'Customer', sortable: true },
               { key: 'budget', title: 'Budget', sortable: true, align: 'right', render: (row) => formatCurrency(row.budget) },
               { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={projectTone(row.status)} /> },
               { key: 'percentComplete', title: 'Complete', sortable: true, align: 'right', render: (row) => `${row.percentComplete}%` },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'project', record: row })}>Update</button> }
+              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'project', record: row })}>Update status</button> }
             ]}
             data={projects}
             rowKey="id"
             searchKeys={['projectCode', 'name', 'customerName', 'projectManager', 'status']}
             searchPlaceholder="Search projects"
             toolbar={<select className="select" value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Planning">Planning</option><option value="Active">Active</option><option value="At Risk">At Risk</option><option value="Completed">Completed</option><option value="On Hold">On Hold</option></select>}
-            emptyTitle="No projects returned"
-            emptyDescription="No projects matched the current status filter."
+            emptyTitle="No projects found"
+            emptyDescription="Try a different status filter or add a new project."
           />
 
           <DataTable
-            title="Service desk"
-            description="Ticket queue and status workflow for support operations."
+            title="Support cases"
+            description="Review support work, priorities, due dates, and progress."
             columns={[
-              { key: 'ticketNumber', title: 'Ticket', sortable: true, render: (row) => <div className="table-primary"><strong>{row.ticketNumber}</strong><span>{row.subject}</span></div> },
+              { key: 'ticketNumber', title: 'Case', sortable: true, render: (row) => <div className="table-primary"><strong>{row.ticketNumber}</strong><span>{row.subject}</span></div> },
               { key: 'customerName', title: 'Customer', sortable: true },
               { key: 'priority', title: 'Priority', sortable: true, render: (row) => <StatusBadge label={row.priority} tone={priorityTone(row.priority)} /> },
               { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={ticketTone(row.status)} /> },
               { key: 'dueAt', title: 'Due', sortable: true, render: (row) => formatDateTime(row.dueAt) },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'ticket', record: row })}>Update</button> }
+              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'ticket', record: row })}>Update status</button> }
             ]}
             data={tickets}
             rowKey="id"
             searchKeys={['ticketNumber', 'customerName', 'subject', 'assignedTeam', 'status']}
             searchPlaceholder="Search tickets"
             toolbar={<select className="select" value={ticketStatusFilter} onChange={(event) => setTicketStatusFilter(event.target.value)}><option value="">All statuses</option><option value="New">New</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option><option value="Escalated">Escalated</option></select>}
-            emptyTitle="No tickets returned"
-            emptyDescription="No tickets matched the selected filter."
+            emptyTitle="No support cases found"
+            emptyDescription="Try a different filter or add a new case."
           />
         </section>
       ) : (
-        <EmptyState title="Operations module hidden" description="The current role does not include operations-domain access." compact />
+        <EmptyState title="Operations area unavailable" description="This account does not currently have access to project or support information." compact />
       )}
 
       <Modal
         open={customerModalOpen}
         onClose={() => setCustomerModalOpen(false)}
         title="Add customer"
-        description="Create a new customer record in the sales service."
+        description="Add a new customer to your workspace."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setCustomerModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="customer-form" className="primary-button" disabled={customerForm.formState.isSubmitting}>
-              {customerForm.formState.isSubmitting ? 'Saving...' : 'Create customer'}
+              {customerForm.formState.isSubmitting ? 'Saving...' : 'Add customer'}
             </button>
           </>
         }
       >
         <form id="customer-form" className="form-grid form-grid--two" onSubmit={customerForm.handleSubmit(submitCustomer)}>
-          <InputField label="Customer name" error={customerForm.formState.errors.name?.message} registration={customerForm.register('name', { required: 'Customer name is required.' })} />
-          <InputField label="Email" type="email" error={customerForm.formState.errors.email?.message} registration={customerForm.register('email', { required: 'Email is required.' })} />
-          <InputField label="Contact number" error={customerForm.formState.errors.contactNumber?.message} registration={customerForm.register('contactNumber', { required: 'Contact number is required.' })} />
-          <SelectField label="Segment" error={customerForm.formState.errors.segment?.message} registration={customerForm.register('segment', { required: 'Segment is required.' })}>
+          <InputField label="Customer name" error={customerForm.formState.errors.name?.message} registration={customerForm.register('name', { required: 'Please enter a customer name.' })} />
+          <InputField label="Email" type="email" error={customerForm.formState.errors.email?.message} registration={customerForm.register('email', { required: 'Please enter an email address.' })} />
+          <InputField label="Contact number" error={customerForm.formState.errors.contactNumber?.message} registration={customerForm.register('contactNumber', { required: 'Please enter a contact number.' })} />
+          <SelectField label="Segment" error={customerForm.formState.errors.segment?.message} registration={customerForm.register('segment', { required: 'Please choose a segment.' })}>
             <option value="SMB">SMB</option>
             <option value="Enterprise">Enterprise</option>
             <option value="Strategic">Strategic</option>
@@ -481,21 +481,21 @@ export default function Orders() {
       <Modal
         open={orderModalOpen}
         onClose={() => setOrderModalOpen(false)}
-        title="Create order"
-        description="Submit a new sales order with a simple line-item payload."
+        title="New order"
+        description="Create a new customer order."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setOrderModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="order-form" className="primary-button" disabled={orderForm.formState.isSubmitting}>
-              {orderForm.formState.isSubmitting ? 'Saving...' : 'Create order'}
+              {orderForm.formState.isSubmitting ? 'Saving...' : 'Save order'}
             </button>
           </>
         }
       >
         <form id="order-form" className="form-grid form-grid--two" onSubmit={orderForm.handleSubmit(submitOrder)}>
-          <SelectField label="Customer" error={orderForm.formState.errors.customerId?.message} registration={orderForm.register('customerId', { required: 'Customer is required.' })}>
+          <SelectField label="Customer" error={orderForm.formState.errors.customerId?.message} registration={orderForm.register('customerId', { required: 'Please choose a customer.' })}>
             <option value="">Select customer</option>
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
@@ -503,7 +503,7 @@ export default function Orders() {
               </option>
             ))}
           </SelectField>
-          <SelectField label="Product" error={orderForm.formState.errors.productId?.message} registration={orderForm.register('productId', { required: 'Product is required.' })}>
+          <SelectField label="Product" error={orderForm.formState.errors.productId?.message} registration={orderForm.register('productId', { required: 'Please choose a product.' })}>
             <option value="">Select product</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>
@@ -511,8 +511,8 @@ export default function Orders() {
               </option>
             ))}
           </SelectField>
-          <InputField label="Quantity" type="number" error={orderForm.formState.errors.quantity?.message} registration={orderForm.register('quantity', { required: 'Quantity is required.', valueAsNumber: true, min: 1 })} />
-          <SelectField label="Payment method" error={orderForm.formState.errors.paymentMethod?.message} registration={orderForm.register('paymentMethod', { required: 'Payment method is required.' })}>
+          <InputField label="Quantity" type="number" error={orderForm.formState.errors.quantity?.message} registration={orderForm.register('quantity', { required: 'Please enter a quantity.', valueAsNumber: true, min: 1 })} />
+          <SelectField label="Payment method" error={orderForm.formState.errors.paymentMethod?.message} registration={orderForm.register('paymentMethod', { required: 'Please choose a payment method.' })}>
             <option value="Bank Transfer">Bank Transfer</option>
             <option value="Card">Card</option>
           </SelectField>
@@ -522,40 +522,40 @@ export default function Orders() {
       <Modal
         open={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}
-        title="Create project"
-        description="Register a project in the operations portfolio."
+        title="New project"
+        description="Add a new project to the work plan."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setProjectModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="project-form" className="primary-button" disabled={projectForm.formState.isSubmitting}>
-              {projectForm.formState.isSubmitting ? 'Saving...' : 'Create project'}
+              {projectForm.formState.isSubmitting ? 'Saving...' : 'Save project'}
             </button>
           </>
         }
       >
         <form id="project-form" className="form-grid form-grid--two" onSubmit={projectForm.handleSubmit(submitProject)}>
-          <InputField label="Project name" error={projectForm.formState.errors.name?.message} registration={projectForm.register('name', { required: 'Project name is required.' })} />
-          <InputField label="Customer name" error={projectForm.formState.errors.customerName?.message} registration={projectForm.register('customerName', { required: 'Customer is required.' })} />
-          <InputField label="Project manager" error={projectForm.formState.errors.projectManager?.message} registration={projectForm.register('projectManager', { required: 'Project manager is required.' })} />
-          <InputField label="Budget" type="number" step="0.01" error={projectForm.formState.errors.budget?.message} registration={projectForm.register('budget', { required: 'Budget is required.', valueAsNumber: true, min: 1 })} />
-          <InputField label="Due date" type="date" error={projectForm.formState.errors.dueDate?.message} registration={projectForm.register('dueDate', { required: 'Due date is required.' })} />
+          <InputField label="Project name" error={projectForm.formState.errors.name?.message} registration={projectForm.register('name', { required: 'Please enter a project name.' })} />
+          <InputField label="Customer name" error={projectForm.formState.errors.customerName?.message} registration={projectForm.register('customerName', { required: 'Please enter the customer name.' })} />
+          <InputField label="Project manager" error={projectForm.formState.errors.projectManager?.message} registration={projectForm.register('projectManager', { required: 'Please enter a project manager.' })} />
+          <InputField label="Budget" type="number" step="0.01" error={projectForm.formState.errors.budget?.message} registration={projectForm.register('budget', { required: 'Please enter a budget.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Due date" type="date" error={projectForm.formState.errors.dueDate?.message} registration={projectForm.register('dueDate', { required: 'Please choose a due date.' })} />
         </form>
       </Modal>
 
       <Modal
         open={ticketModalOpen}
         onClose={() => setTicketModalOpen(false)}
-        title="Log service ticket"
-        description="Create a service-desk ticket in the operations queue."
+        title="New support case"
+        description="Create a new case for the support team."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setTicketModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="ticket-form" className="primary-button" disabled={ticketForm.formState.isSubmitting}>
-              {ticketForm.formState.isSubmitting ? 'Saving...' : 'Create ticket'}
+              {ticketForm.formState.isSubmitting ? 'Saving...' : 'Save case'}
             </button>
           </>
         }
@@ -569,23 +569,23 @@ export default function Orders() {
               </option>
             ))}
           </SelectField>
-          <InputField label="Customer name" error={ticketForm.formState.errors.customerName?.message} registration={ticketForm.register('customerName', { required: 'Customer name is required.' })} />
-          <InputField label="Subject" error={ticketForm.formState.errors.subject?.message} registration={ticketForm.register('subject', { required: 'Subject is required.' })} />
-          <SelectField label="Priority" error={ticketForm.formState.errors.priority?.message} registration={ticketForm.register('priority', { required: 'Priority is required.' })}>
+          <InputField label="Customer name" error={ticketForm.formState.errors.customerName?.message} registration={ticketForm.register('customerName', { required: 'Please enter the customer name.' })} />
+          <InputField label="Subject" error={ticketForm.formState.errors.subject?.message} registration={ticketForm.register('subject', { required: 'Please enter a subject.' })} />
+          <SelectField label="Priority" error={ticketForm.formState.errors.priority?.message} registration={ticketForm.register('priority', { required: 'Please choose a priority.' })}>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
             <option value="High">High</option>
           </SelectField>
-          <InputField label="Assigned team" error={ticketForm.formState.errors.assignedTeam?.message} registration={ticketForm.register('assignedTeam', { required: 'Assigned team is required.' })} />
-          <InputField label="Due in hours" type="number" error={ticketForm.formState.errors.dueInHours?.message} registration={ticketForm.register('dueInHours', { required: 'Due-in-hours is required.', valueAsNumber: true, min: 1 })} />
+          <InputField label="Assigned team" error={ticketForm.formState.errors.assignedTeam?.message} registration={ticketForm.register('assignedTeam', { required: 'Please enter an assigned team.' })} />
+          <InputField label="Due in hours" type="number" error={ticketForm.formState.errors.dueInHours?.message} registration={ticketForm.register('dueInHours', { required: 'Please enter the due time in hours.', valueAsNumber: true, min: 1 })} />
         </form>
       </Modal>
 
-      <Modal open={customerInsightOpen} onClose={() => setCustomerInsightOpen(false)} title={customerInsight?.customerName || 'Customer intelligence'} description="Customer value and churn-expansion guidance from the sales intelligence endpoint.">
+      <Modal open={customerInsightOpen} onClose={() => setCustomerInsightOpen(false)} title={customerInsight?.customerName || 'Customer insights'} description="Customer value, payment position, and growth guidance.">
         {customerInsight ? (
           <div className="detail-grid">
             <div className="detail-card">
-              <h4>Commercial profile</h4>
+              <h4>Account summary</h4>
               <dl className="detail-list">
                 <div><dt>Lifetime value</dt><dd>{formatCurrency(customerInsight.lifetimeValue)}</dd></div>
                 <div><dt>Average order value</dt><dd>{formatCurrency(customerInsight.averageOrderValue)}</dd></div>
@@ -594,11 +594,11 @@ export default function Orders() {
               </dl>
             </div>
             <div className="detail-card">
-              <h4>Growth signals</h4>
+              <h4>Growth outlook</h4>
               <div className="stack-list">
-                <div className="list-row"><div><strong>Churn risk</strong><p>{customerInsight.churnRiskScore}%</p></div><StatusBadge label="Retention" tone={customerInsight.churnRiskScore > 60 ? 'danger' : 'warning'} /></div>
-                <div className="list-row"><div><strong>Expansion score</strong><p>{customerInsight.expansionScore}%</p></div><StatusBadge label="Growth" tone={customerInsight.expansionScore > 60 ? 'success' : 'info'} /></div>
-                <div className="list-row list-row--stacked"><div><strong>Next best action</strong><p>{customerInsight.nextBestAction}</p></div><StatusBadge label="Recommendation" tone="info" /></div>
+                <div className="list-row"><div><strong>Retention risk</strong><p>{customerInsight.churnRiskScore}%</p></div><StatusBadge label="Retention" tone={customerInsight.churnRiskScore > 60 ? 'danger' : 'warning'} /></div>
+                <div className="list-row"><div><strong>Growth potential</strong><p>{customerInsight.expansionScore}%</p></div><StatusBadge label="Growth" tone={customerInsight.expansionScore > 60 ? 'success' : 'info'} /></div>
+                <div className="list-row list-row--stacked"><div><strong>Recommended next step</strong><p>{customerInsight.nextBestAction}</p></div><StatusBadge label="Recommendation" tone="info" /></div>
               </div>
             </div>
           </div>
@@ -608,8 +608,8 @@ export default function Orders() {
       <Modal
         open={orderDetailOpen}
         onClose={() => setOrderDetailOpen(false)}
-        title={selectedOrder?.orderNumber || 'Order detail'}
-        description={selectedOrder ? `${selectedOrder.customerName} / ${formatDate(selectedOrder.orderDate)}` : 'Order detail'}
+        title={selectedOrder?.orderNumber || 'Order details'}
+        description={selectedOrder ? `${selectedOrder.customerName} / ${formatDate(selectedOrder.orderDate)}` : 'Order details'}
         size="lg"
         footer={
           <>
@@ -634,7 +634,7 @@ export default function Orders() {
               </dl>
             </div>
             <div className="detail-card">
-              <h4>Workflow</h4>
+              <h4>Order progress</h4>
               <label className="field">
                 <span className="field__label">Order status</span>
                 <select className="select" value={pendingOrderStatus} onChange={(event) => setPendingOrderStatus(event.target.value)}>
@@ -647,7 +647,7 @@ export default function Orders() {
               </label>
             </div>
             <div className="detail-card detail-card--full">
-              <h4>Line items</h4>
+              <h4>Items</h4>
               <div className="stack-list">
                 {selectedOrder.lines.map((line) => (
                   <div key={`${selectedOrder.id}-${line.productId}`} className="list-row">
@@ -664,8 +664,8 @@ export default function Orders() {
       <Modal
         open={workflowOpen}
         onClose={() => setWorkflowOpen(false)}
-        title={workflowTarget ? `${workflowTarget.kind === 'project' ? workflowTarget.record.projectCode : workflowTarget.record.ticketNumber} workflow` : 'Workflow update'}
-        description={workflowTarget ? `Update ${workflowTarget.kind} status using the operations service workflow endpoints.` : 'Workflow update'}
+        title={workflowTarget ? `${workflowTarget.kind === 'project' ? workflowTarget.record.projectCode : workflowTarget.record.ticketNumber}` : 'Update status'}
+        description={workflowTarget ? `Choose the latest ${workflowTarget.kind === 'project' ? 'project' : 'case'} status.` : 'Choose the latest status.'}
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setWorkflowOpen(false)}>
@@ -701,7 +701,7 @@ export default function Orders() {
           </label>
           {workflowTarget?.kind === 'project' ? (
             <label className="field">
-              <span className="field__label">Percent complete</span>
+              <span className="field__label">Completion (%)</span>
               <input className="input" type="number" min="0" max="100" value={pendingProjectPercent} onChange={(event) => setPendingProjectPercent(Number(event.target.value))} />
             </label>
           ) : null}

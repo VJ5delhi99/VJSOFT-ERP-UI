@@ -197,7 +197,7 @@ export default function Finance() {
       reference: values.reference
     })
 
-    showToast('Payment recorded', 'The payment was registered with the payment service.', 'success')
+    showToast('Payment saved', 'The payment has been added to the invoice.', 'success')
     setPaymentModalOpen(false)
     await loadFinanceWorkspace(overdueOnly)
   }
@@ -224,32 +224,32 @@ export default function Finance() {
   const collectionRiskRows = collectionRisk?.items.slice(0, 8) || []
 
   if (loading) {
-    return <Spinner fullPage label="Loading finance workspace" />
+    return <Spinner fullPage label="Loading finance information" />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Finance"
-        title="Finance operations"
-        description="Monitor invoicing, receivables, cash outlook, and collection risk from one finance control center."
+        title="Finance and collections"
+        description="Track invoices, payments, cash outlook, and follow-up priorities in one place."
         actions={
           <>
             <button type="button" className="ghost-button" onClick={() => setOverdueOnly((current) => !current)}>
-              {overdueOnly ? 'Show all invoices' : 'Show overdue only'}
+              {overdueOnly ? 'Show all invoices' : 'Show past-due only'}
             </button>
             <button type="button" className="primary-button" onClick={openPaymentModal} disabled={state.invoices.length === 0}>
-              Record payment
+              Add payment
             </button>
           </>
         }
       />
 
       <section className="stat-grid">
-        <StatCard label="Total invoiced" value={billingDashboard?.totalInvoiced ?? 0} format="currency" subtitle="Invoice service output" />
-        <StatCard label="Collected" value={billingDashboard?.collectedAmount ?? 0} format="currency" subtitle="Payments registered" />
+        <StatCard label="Total invoiced" value={billingDashboard?.totalInvoiced ?? 0} format="currency" subtitle="Invoices issued" />
+        <StatCard label="Collected" value={billingDashboard?.collectedAmount ?? 0} format="currency" subtitle="Payments received" />
         <StatCard label="Outstanding" value={billingDashboard?.outstandingBalance ?? 0} format="currency" subtitle="Open receivables" />
-        <StatCard label="Overdue balance" value={billingDashboard?.overdueBalance ?? 0} format="currency" subtitle="Collections requiring attention" />
+        <StatCard label="Past-due balance" value={billingDashboard?.overdueBalance ?? 0} format="currency" subtitle="Needs follow-up" />
       </section>
 
       <section className="dashboard-grid">
@@ -257,7 +257,7 @@ export default function Finance() {
           <div className="section-heading">
             <div>
               <h3>Cash forecast</h3>
-              <p>Expected collections versus overdue exposure across finance horizons.</p>
+              <p>Expected cash in and past-due exposure over the next few planning periods.</p>
             </div>
           </div>
           {cashForecastData.length > 0 ? (
@@ -268,7 +268,7 @@ export default function Finance() {
               secondaryLabel="Overdue exposure"
             />
           ) : (
-            <EmptyState title="Forecast unavailable" description="The payment forecast endpoint did not return data." compact />
+            <EmptyState title="Cash outlook unavailable" description="Cash forecast information is not available right now." compact />
           )}
         </article>
 
@@ -276,13 +276,13 @@ export default function Finance() {
           <div className="section-heading">
             <div>
               <h3>Invoice aging</h3>
-              <p>Aging distribution from the invoicing service.</p>
+              <p>Open balance grouped by how long invoices have been outstanding.</p>
             </div>
           </div>
           {agingBars.length > 0 ? (
             <CategoryBarChart data={agingBars} valueLabel="currency" />
           ) : (
-            <EmptyState title="Aging data unavailable" description="No invoice aging data was returned." compact />
+            <EmptyState title="Aging data unavailable" description="Invoice aging details are not available right now." compact />
           )}
         </article>
       </section>
@@ -291,8 +291,8 @@ export default function Finance() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Finance narrative</h3>
-              <p>High-level working capital and collections signal from BillingService.</p>
+              <h3>Cash position</h3>
+              <p>Quick guidance on working capital and collections.</p>
             </div>
           </div>
           <div className="stack-list">
@@ -308,21 +308,21 @@ export default function Finance() {
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Collections commentary</strong>
-                <p>{financeDashboard?.narrative || 'No finance narrative was returned by the service.'}</p>
+                <strong>Collections summary</strong>
+                <p>{financeDashboard?.narrative || 'A summary is not available right now.'}</p>
               </div>
-              <StatusBadge label="Narrative" tone="info" />
+              <StatusBadge label="Summary" tone="info" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Executive exposure</strong>
+                <strong>Follow-up priority</strong>
                 <p>
                   {executiveDashboard
-                    ? `${executiveDashboard.highRiskCollections} high-risk collections and ${executiveDashboard.overdueInvoices} overdue invoices are currently open.`
-                    : 'Executive finance data is unavailable.'}
+                    ? `${executiveDashboard.highRiskCollections} high-risk collections and ${executiveDashboard.overdueInvoices} past-due invoices are currently open.`
+                    : 'Finance summary information is not available right now.'}
                 </p>
               </div>
-              <StatusBadge label="Executive view" tone="warning" />
+              <StatusBadge label="Attention" tone="warning" />
             </div>
           </div>
         </article>
@@ -330,12 +330,12 @@ export default function Finance() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Alerts and anomalies</h3>
-              <p>Operational alerting across billing and payment services.</p>
+              <h3>Finance updates</h3>
+              <p>Warnings and unusual items that may need follow-up.</p>
             </div>
           </div>
           {state.alerts.length === 0 && state.anomalies.length === 0 ? (
-            <EmptyState title="No active finance alerts" description="Billing and payment services returned no active alert records." compact />
+            <EmptyState title="No finance updates" description="There are no active warnings to review right now." compact />
           ) : (
             <div className="stack-list">
               {state.alerts.map((item) => (
@@ -366,7 +366,7 @@ export default function Finance() {
           <div className="section-heading">
             <div>
               <h3>Payroll summary</h3>
-              <p>HR-enabled payroll visibility when the current role includes payroll access.</p>
+              <p>Payroll details available for users with payroll access.</p>
             </div>
           </div>
           <div className="detail-grid">
@@ -410,7 +410,7 @@ export default function Finance() {
 
       <DataTable
         title="Invoices"
-        description="Invoice visibility and detail drill-down from the invoicing microservice."
+        description="Review invoices and open each one for payment details."
         columns={[
           {
             key: 'invoiceNumber',
@@ -454,7 +454,7 @@ export default function Finance() {
             title: 'Actions',
             render: (row) => (
               <button type="button" className="ghost-button" onClick={() => void openInvoice(row.id)}>
-                View detail
+                View details
               </button>
             )
           }
@@ -463,14 +463,14 @@ export default function Finance() {
         rowKey="id"
         searchKeys={['invoiceNumber', 'customerName', 'status']}
         searchPlaceholder="Search invoices"
-        emptyTitle="No invoices returned"
-        emptyDescription="No invoice records matched the active filter."
+        emptyTitle="No invoices found"
+        emptyDescription="Try a different filter or come back when more invoices are available."
       />
 
       <section className="dashboard-grid dashboard-grid--balanced">
         <DataTable
           title="Payments"
-          description="Recent registered payments across receivables."
+          description="Recent customer payments."
           columns={[
             {
               key: 'paymentDate',
@@ -506,13 +506,13 @@ export default function Finance() {
           rowKey="id"
           searchKeys={['invoiceNumber', 'customerName', 'paymentMethod', 'reference']}
           searchPlaceholder="Search payments"
-          emptyTitle="No payments returned"
-          emptyDescription="No payment data was returned by the payment service."
+          emptyTitle="No payments found"
+          emptyDescription="Payments will appear here after they are recorded."
         />
 
         <DataTable
           title="Collection risk"
-          description="Highest receivable exposures ranked by collection risk score."
+          description="Accounts with the highest follow-up risk."
           columns={[
             {
               key: 'invoiceNumber',
@@ -549,23 +549,23 @@ export default function Finance() {
           rowKey="invoiceId"
           searchKeys={['invoiceNumber', 'customerName', 'riskBand']}
           searchPlaceholder="Search collection risk"
-          emptyTitle="No collection risk returned"
-          emptyDescription="The collection-risk endpoint did not return open exposures."
+          emptyTitle="No follow-up risk found"
+          emptyDescription="There are no high-risk balances to review right now."
         />
       </section>
 
       <Modal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        title="Record payment"
-        description="Register a payment against an invoice using the payment service."
+        title="Add payment"
+        description="Add a payment to an invoice."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setPaymentModalOpen(false)}>
               Cancel
             </button>
             <button type="submit" form="payment-form" className="primary-button" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Record payment'}
+              {isSubmitting ? 'Saving...' : 'Save payment'}
             </button>
           </>
         }
@@ -574,7 +574,7 @@ export default function Finance() {
           <SelectField
             label="Invoice"
             error={errors.invoiceId?.message}
-            registration={register('invoiceId', { required: 'Invoice is required.' })}
+            registration={register('invoiceId', { required: 'Please choose an invoice.' })}
           >
             <option value="">Select invoice</option>
             {state.invoices
@@ -590,12 +590,12 @@ export default function Finance() {
             type="number"
             step="0.01"
             error={errors.amount?.message}
-            registration={register('amount', { required: 'Amount is required.', valueAsNumber: true, min: 1 })}
+            registration={register('amount', { required: 'Please enter an amount.', valueAsNumber: true, min: 1 })}
           />
           <SelectField
             label="Payment method"
             error={errors.paymentMethod?.message}
-            registration={register('paymentMethod', { required: 'Payment method is required.' })}
+            registration={register('paymentMethod', { required: 'Please choose a payment method.' })}
           >
             <option value="Bank Transfer">Bank Transfer</option>
             <option value="Card">Card</option>
@@ -604,9 +604,9 @@ export default function Finance() {
           </SelectField>
           <InputField
             label="Reference"
-            placeholder="Settlement reference"
+            placeholder="Payment reference"
             error={errors.reference?.message}
-            registration={register('reference', { required: 'Reference is required.' })}
+            registration={register('reference', { required: 'Please enter a payment reference.' })}
           />
         </form>
       </Modal>
@@ -614,14 +614,14 @@ export default function Finance() {
       <Modal
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={selectedInvoice?.invoiceNumber || 'Invoice detail'}
-        description={selectedInvoice ? `${selectedInvoice.customerName} / ${selectedInvoice.orderNumber}` : 'Invoice detail'}
+        title={selectedInvoice?.invoiceNumber || 'Invoice details'}
+        description={selectedInvoice ? `${selectedInvoice.customerName} / ${selectedInvoice.orderNumber}` : 'Invoice details'}
         size="lg"
       >
         {selectedInvoice ? (
           <div className="detail-grid">
             <div className="detail-card">
-              <h4>Summary</h4>
+              <h4>Invoice summary</h4>
               <dl className="detail-list">
                 <div>
                   <dt>Invoice date</dt>
@@ -649,9 +649,9 @@ export default function Finance() {
             </div>
 
             <div className="detail-card">
-              <h4>Payments</h4>
+              <h4>Payment history</h4>
               {selectedInvoicePayments.length === 0 ? (
-                <EmptyState title="No payments" description="No payments are recorded against this invoice yet." compact />
+                <EmptyState title="No payments yet" description="No payments have been added to this invoice yet." compact />
               ) : (
                 <div className="stack-list">
                   {selectedInvoicePayments.map((payment) => (

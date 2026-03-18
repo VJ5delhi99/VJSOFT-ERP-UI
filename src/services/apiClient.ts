@@ -49,7 +49,7 @@ function createClient(service: ServiceKey) {
       if (!apiConfig.useMocks) {
         store.dispatch(
           pushToast({
-            title: 'Request failed',
+            title: 'Could not complete action',
             message: normalizedError.message,
             tone: normalizedError.status && normalizedError.status >= 500 ? 'danger' : 'warning'
           })
@@ -108,26 +108,26 @@ export function normalizeApiError(error: unknown): ApiError {
 
     if (!status && (error.code === AxiosError.ERR_NETWORK || error.message === 'Network Error')) {
       return {
-        message: 'Unable to reach the service. Check the API host, CORS policy, and HTTP/HTTPS configuration.'
+        message: "We couldn't connect right now. Check your connection or try again in a moment."
       }
     }
 
     const message =
       status === 401
-        ? 'Invalid username or password.'
+        ? 'Your sign-in details are not correct.'
         : status === 403
-          ? 'You do not have permission to complete this action.'
+          ? 'You do not have access to do this.'
           : status === 404
-            ? 'The requested resource could not be found.'
+            ? "We couldn't find what you were looking for."
             : status && status >= 500
-              ? 'The service is temporarily unavailable. Try again shortly.'
-              : 'Something went wrong while processing the request.'
+              ? 'This information is not available right now. Please try again shortly.'
+              : "We couldn't complete your request. Please try again."
 
     return { message, status }
   }
 
   return {
-    message: 'An unexpected application error occurred.'
+    message: "We couldn't complete your request. Please try again."
   }
 }
 

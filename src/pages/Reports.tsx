@@ -20,6 +20,13 @@ interface ExtractionFormValues {
   content: string
 }
 
+function toLabel(value: string) {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
 export default function Reports() {
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -81,7 +88,7 @@ export default function Reports() {
         DaysOverdue: invoice.daysOverdue
       }))
     )
-    showToast('Report exported', 'Overdue invoice data was exported to CSV.', 'success')
+    showToast('Export ready', 'Past-due invoice details were exported to CSV.', 'success')
   }
 
   async function extractDocument(values: ExtractionFormValues) {
@@ -91,7 +98,7 @@ export default function Reports() {
     })
 
     setExtractionResult(result)
-    showToast('Extraction complete', `${result.documentType} extraction returned ${result.confidencePercent}% confidence.`, 'success')
+    showToast('Review complete', `${result.documentType} details were reviewed with ${result.confidencePercent}% confidence.`, 'success')
     reset(values)
   }
 
@@ -117,19 +124,19 @@ export default function Reports() {
   }, [snapshot])
 
   if (loading) {
-    return <Spinner fullPage label="Loading reports and analytics" />
+    return <Spinner fullPage label="Loading reports and insights" />
   }
 
   if (!snapshot) {
-    return <EmptyState title="Reports unavailable" description="The reporting endpoints did not return a usable snapshot." />
+    return <EmptyState title="Reports unavailable" description="We could not load the reporting summary right now." />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Reporting"
-        title="Reports and analytics"
-        description="Run exports, review analytics, and use AI-assisted reporting tools built for finance and leadership workflows."
+        title="Reports and insights"
+        description="Review key results, export lists, and summarize performance."
         actions={
           <button type="button" className="primary-button" onClick={() => void exportReport()} disabled={overdueInvoices.length === 0}>
             Export CSV
@@ -138,10 +145,10 @@ export default function Reports() {
       />
 
       <section className="stat-grid">
-        <StatCard label="Revenue (30 days)" value={snapshot.revenueLast30Days} format="currency" subtitle="Reporting snapshot" />
-        <StatCard label="Collections (30 days)" value={snapshot.collectionsLast30Days} format="currency" subtitle="Recent payment activity" />
-        <StatCard label="Inventory value" value={snapshot.inventoryValue} format="currency" subtitle="Current stock exposure" />
-        <StatCard label="Outstanding balance" value={snapshot.outstandingBalance} format="currency" subtitle="Receivables still open" />
+        <StatCard label="Sales last 30 days" value={snapshot.revenueLast30Days} format="currency" subtitle="Recent sales activity" />
+        <StatCard label="Collections last 30 days" value={snapshot.collectionsLast30Days} format="currency" subtitle="Recent payments received" />
+        <StatCard label="Inventory value" value={snapshot.inventoryValue} format="currency" subtitle="Current stock value" />
+        <StatCard label="Outstanding balance" value={snapshot.outstandingBalance} format="currency" subtitle="Open balance still unpaid" />
       </section>
 
       <section className="dashboard-grid">
@@ -149,13 +156,13 @@ export default function Reports() {
           <div className="section-heading">
             <div>
               <h3>Invoice aging distribution</h3>
-              <p>Outstanding exposure grouped into aging buckets.</p>
+              <p>Open balances grouped by how long they have been outstanding.</p>
             </div>
           </div>
           {agingBars.length > 0 ? (
             <CategoryBarChart data={agingBars} valueLabel="currency" />
           ) : (
-            <EmptyState title="No aging data" description="The invoicing service did not return aging buckets." compact />
+            <EmptyState title="No aging data" description="Invoice aging details are not available right now." compact />
           )}
         </article>
 
@@ -163,7 +170,7 @@ export default function Reports() {
           <div className="section-heading">
             <div>
               <h3>Operational workload</h3>
-              <p>Open delivery commitments feeding cross-functional reporting.</p>
+              <p>Open work across projects, support, and production.</p>
             </div>
           </div>
           <CategoryBarChart data={operationalBars} />
@@ -173,14 +180,14 @@ export default function Reports() {
       <section className="dashboard-grid dashboard-grid--balanced">
         <AIAssistant
           title="Reporting assistant"
-          description="This assistant is backed by the reporting endpoint and returns backend-generated narratives."
-          initialMessage="Ask for a reporting summary such as revenue, collections, overdue invoices, or operations load."
+          description="Ask for a plain-language summary of the numbers on this page."
+          initialMessage="Ask for a summary of sales, collections, past-due invoices, or open work."
           suggestions={['Summarize current revenue and collections', 'What needs leadership attention?', 'How exposed are overdue invoices?']}
           generateResponse={async (question) => {
             const response = await financeService.askReportingAssistant({ question })
             const metrics = Object.entries(response.metrics)
               .slice(0, 3)
-              .map(([key, value]) => `${key}: ${value}`)
+              .map(([key, value]) => `${toLabel(key)}: ${value}`)
               .join(' | ')
 
             return metrics ? `${response.narrative} ${metrics}` : response.narrative
@@ -191,27 +198,27 @@ export default function Reports() {
           <div className="section-heading">
             <div>
               <h3>Document extraction</h3>
-              <p>AI-ready intake surface backed by the invoice document extraction endpoint.</p>
+              <p>Paste invoice, receipt, or statement text to pull out key details.</p>
             </div>
           </div>
           <form className="form-grid" onSubmit={handleSubmit(extractDocument)}>
             <SelectField
               label="Document type"
               error={errors.documentType?.message}
-              registration={register('documentType', { required: 'Document type is required.' })}
+              registration={register('documentType', { required: 'Please choose a document type.' })}
             >
               <option value="Invoice">Invoice</option>
               <option value="Receipt">Receipt</option>
               <option value="Statement">Statement</option>
             </SelectField>
             <TextAreaField
-              label="Document content"
-              placeholder="Paste OCR text or structured content for extraction"
+              label="Document text"
+              placeholder="Paste text from a document to review key details"
               error={errors.content?.message}
-              registration={register('content', { required: 'Document content is required.' })}
+              registration={register('content', { required: 'Please paste the document text.' })}
             />
             <button type="submit" className="primary-button" disabled={isSubmitting}>
-              {isSubmitting ? 'Extracting...' : 'Extract document'}
+              {isSubmitting ? 'Reviewing...' : 'Review document'}
             </button>
           </form>
 
@@ -220,7 +227,7 @@ export default function Reports() {
               <div className="list-row">
                 <div>
                   <strong>{extractionResult.documentType}</strong>
-                  <p>Extraction result</p>
+                  <p>Key details found</p>
                 </div>
                 <StatusBadge
                   label={`${extractionResult.confidencePercent}% confidence`}
@@ -230,7 +237,7 @@ export default function Reports() {
               {Object.entries(extractionResult.fields).map(([key, value]) => (
                 <div key={key} className="list-row">
                   <div>
-                    <strong>{key}</strong>
+                    <strong>{toLabel(key)}</strong>
                     <p>{value}</p>
                   </div>
                   <StatusBadge label="Field" tone="info" />
@@ -239,7 +246,7 @@ export default function Reports() {
               {extractionResult.warnings.map((warning) => (
                 <div key={warning} className="list-row">
                   <div>
-                    <strong>Warning</strong>
+                    <strong>Needs review</strong>
                     <p>{warning}</p>
                   </div>
                   <StatusBadge label="Review" tone="warning" />
@@ -251,8 +258,8 @@ export default function Reports() {
       </section>
 
       <DataTable
-        title="Overdue invoices"
-        description="Overdue invoice list used for export and downstream analysis."
+        title="Past-due invoices"
+        description="Past-due invoice list used for exports and follow-up."
         columns={[
           {
             key: 'invoiceNumber',
@@ -293,9 +300,9 @@ export default function Reports() {
         data={overdueInvoices}
         rowKey="id"
         searchKeys={['invoiceNumber', 'customerName', 'status']}
-        searchPlaceholder="Search overdue invoices"
-        emptyTitle="No overdue invoices"
-        emptyDescription="No overdue invoice records were returned."
+        searchPlaceholder="Search past-due invoices"
+        emptyTitle="No past-due invoices"
+        emptyDescription="There are no past-due invoices to review right now."
       />
     </div>
   )

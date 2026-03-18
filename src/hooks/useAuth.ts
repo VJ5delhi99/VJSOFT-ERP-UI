@@ -23,8 +23,8 @@ export function useAuth() {
       dispatch(setSession(session))
       dispatch(
         pushToast({
-          title: 'Welcome back',
-          message: `${session.user.userName} is signed in.`,
+          title: 'Signed in',
+          message: `You are signed in as ${session.user.userName}.`,
           tone: 'success'
         })
       )
@@ -68,7 +68,7 @@ export function useAuth() {
     dispatch(
       pushToast({
         title: 'Signed out',
-        message: 'Your session has been cleared.',
+        message: 'You have been signed out.',
         tone: 'info'
       })
     )

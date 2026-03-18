@@ -70,35 +70,35 @@ export default function Companies() {
   const enabledAiUseCases = aiReadiness?.useCases.filter((item) => item.enabled).length ?? 0
 
   if (loading) {
-    return <Spinner fullPage label="Loading tenant workspace" />
+    return <Spinner fullPage label="Loading workspace information" />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Tenant"
-        title="Workspace activity"
-        description="Review tenant context, notification activity, and platform readiness for the current workspace."
+        eyebrow="Workspace"
+        title="Workspace updates"
+        description="Review workspace details, recent updates, and available AI setup."
         actions={
           <button type="button" className="ghost-button" onClick={() => setUnreadOnly((current) => !current)}>
-            {unreadOnly ? 'Show all notifications' : 'Show unread only'}
+            {unreadOnly ? 'Show all updates' : 'Show unread only'}
           </button>
         }
       />
 
       <section className="stat-grid">
-        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Current tenant access scope" />
-        <StatCard label="Unread notifications" value={unreadCount} format="number" subtitle="Open platform feed items" />
-        <StatCard label="Permission grants" value={user?.permissions.length ?? 0} format="number" subtitle="Effective permission set" />
-        <StatCard label="Enabled AI use cases" value={enabledAiUseCases} format="number" subtitle="Admin-visible readiness catalog" />
+        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles on this workspace" />
+        <StatCard label="Unread updates" value={unreadCount} format="number" subtitle="New items to review" />
+        <StatCard label="Permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Available actions" />
+        <StatCard label="Active AI use cases" value={enabledAiUseCases} format="number" subtitle="Available AI setup" />
       </section>
 
       <section className="dashboard-grid dashboard-grid--balanced">
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Tenant context</h3>
-              <p>Header and claim values used by the microservices for tenant isolation.</p>
+              <h3>Workspace details</h3>
+              <p>Workspace details used to keep your data in the right place.</p>
             </div>
           </div>
           <div className="detail-grid">
@@ -106,7 +106,7 @@ export default function Companies() {
               <h4>Workspace identity</h4>
               <dl className="detail-list">
                 <div>
-                  <dt>Tenant id</dt>
+                  <dt>Workspace id</dt>
                   <dd>{context?.tenantId || user?.tenantId || '-'}</dd>
                 </div>
                 <div>
@@ -118,28 +118,28 @@ export default function Companies() {
                   <dd>{context?.userName || user?.userName || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Correlation id</dt>
+                  <dt>Support reference</dt>
                   <dd>{context?.correlationId || '-'}</dd>
                 </div>
               </dl>
             </div>
 
             <div className="detail-card">
-              <h4>Runtime contract</h4>
+              <h4>How access works</h4>
               <div className="stack-list">
                 <div className="list-row list-row--stacked">
                   <div>
-                    <strong>X-Tenant-Id must match the JWT tenant</strong>
-                    <p>The platform rejects authenticated API calls when the tenant header and token claims differ.</p>
+                    <strong>Workspace checks stay in sync</strong>
+                    <p>The system verifies that your signed-in workspace matches each request.</p>
                   </div>
-                  <StatusBadge label="Isolation enforced" tone="warning" />
+                  <StatusBadge label="Protected" tone="warning" />
                 </div>
                 <div className="list-row list-row--stacked">
                   <div>
-                    <strong>Notifications are the tenant-facing feed</strong>
-                    <p>Company settings and tenant CRUD are not currently exposed by the backend services.</p>
+                    <strong>Updates are shared here</strong>
+                    <p>Workspace news, reminders, and alerts are collected in one place for every signed-in user.</p>
                   </div>
-                  <StatusBadge label="Backend-aligned" tone="info" />
+                  <StatusBadge label="Available" tone="info" />
                 </div>
               </div>
             </div>
@@ -149,8 +149,8 @@ export default function Companies() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>AI readiness</h3>
-              <p>Administrative AI and integration readiness published by the platform.</p>
+              <h3>AI setup</h3>
+              <p>Available AI setup and business use cases for this workspace.</p>
             </div>
           </div>
           {aiReadiness ? (
@@ -158,7 +158,7 @@ export default function Companies() {
               <div className="list-row">
                 <div>
                   <strong>{aiReadiness.provider}</strong>
-                  <p>Provider / orchestration setting</p>
+                  <p>Current provider</p>
                 </div>
                 <StatusBadge label={aiReadiness.aiEnabled ? 'Enabled' : 'Disabled'} tone={aiReadiness.aiEnabled ? 'success' : 'warning'} />
               </div>
@@ -176,8 +176,8 @@ export default function Companies() {
             </div>
           ) : (
             <EmptyState
-              title="Admin-only readiness data"
-              description="AI readiness is exposed only to users with the user-management permission."
+              title="AI setup is limited"
+              description="AI setup details are available only to users who manage access."
               compact
             />
           )}
@@ -185,8 +185,8 @@ export default function Companies() {
       </section>
 
       <DataTable
-        title="Tenant notifications"
-        description="Notifications are available to all authenticated users and can be acknowledged from the workspace."
+        title="Workspace updates"
+        description="Review updates and mark them as read from this page."
         columns={[
           {
             key: 'createdAt',
@@ -220,14 +220,14 @@ export default function Companies() {
             key: 'isRead',
             title: 'Status',
             sortable: true,
-            render: (row) => <StatusBadge label={row.isRead ? 'Acknowledged' : 'Unread'} tone={row.isRead ? 'success' : 'warning'} />
+            render: (row) => <StatusBadge label={row.isRead ? 'Read' : 'Unread'} tone={row.isRead ? 'success' : 'warning'} />
           },
           {
             key: 'actions',
             title: 'Actions',
             render: (row) =>
               row.isRead ? (
-                'Acknowledged'
+                'Read'
               ) : (
                 <button
                   type="button"
@@ -235,7 +235,7 @@ export default function Companies() {
                   disabled={acknowledgingId === row.id}
                   onClick={() => void acknowledgeNotification(row.id)}
                 >
-                  {acknowledgingId === row.id ? 'Updating...' : 'Acknowledge'}
+                  {acknowledgingId === row.id ? 'Saving...' : 'Mark as read'}
                 </button>
               )
           }
@@ -243,9 +243,9 @@ export default function Companies() {
         data={notifications}
         rowKey="id"
         searchKeys={['title', 'type', 'message', 'severity']}
-        searchPlaceholder="Search notifications"
-        emptyTitle="No notifications"
-        emptyDescription="The tenant feed is currently clear."
+        searchPlaceholder="Search updates"
+        emptyTitle="No updates"
+        emptyDescription="Your workspace is up to date."
       />
     </div>
   )

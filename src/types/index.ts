@@ -45,6 +45,7 @@ export interface AuthUser {
   tenantId: string
   roles: UserRole[]
   permissions: Permission[]
+  isDemoUser: boolean
   isActive: boolean
 }
 
@@ -510,6 +511,15 @@ export interface PlatformContextDto {
   userName: string
   roles: UserRole[]
   correlationId: string
+}
+
+export interface DemoStatusDto {
+  isEnabled: boolean
+  isDemoTenant: boolean
+  isDemoUser: boolean
+  canReset: boolean
+  demoTenantId: string
+  currentTenantId: string | null
 }
 
 export interface AuditTrailEntryDto {
