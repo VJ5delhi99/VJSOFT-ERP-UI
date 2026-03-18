@@ -6,6 +6,25 @@ function trimTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value
 }
 
+function isLocalHostname(hostname: string) {
+  return hostname === 'localhost' || hostname === '127.0.0.1'
+}
+
+function getBrowserBaseUrl(port: number) {
+  if (typeof window === 'undefined') {
+    return `http://localhost:${port}`
+  }
+
+  if (!isLocalHostname(window.location.hostname)) {
+    return window.location.origin
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
+  const hostname = window.location.hostname || 'localhost'
+
+  return `${protocol}//${hostname}:${port}`
+}
+
 const environment = (import.meta.env.VITE_APP_ENV || import.meta.env.MODE || 'development') as AppEnvironment
 
 function resolveServiceUrl(envValue: string | undefined, fallbackUrl: string) {
@@ -26,13 +45,13 @@ export const apiConfig = {
     user: 'vj.erp.user'
   },
   services: {
-    auth: resolveServiceUrl(import.meta.env.VITE_SERVICE_AUTH_URL, 'http://localhost:8080'),
-    platform: resolveServiceUrl(import.meta.env.VITE_SERVICE_PLATFORM_URL, 'http://localhost:8081'),
-    catalog: resolveServiceUrl(import.meta.env.VITE_SERVICE_CATALOG_URL, 'http://localhost:8081'),
-    inventory: resolveServiceUrl(import.meta.env.VITE_SERVICE_INVENTORY_URL, 'http://localhost:8082'),
-    sales: resolveServiceUrl(import.meta.env.VITE_SERVICE_SALES_URL, 'http://localhost:8083'),
-    billing: resolveServiceUrl(import.meta.env.VITE_SERVICE_BILLING_URL, 'http://localhost:8084'),
-    payments: resolveServiceUrl(import.meta.env.VITE_SERVICE_PAYMENTS_URL, 'http://localhost:8085'),
-    invoices: resolveServiceUrl(import.meta.env.VITE_SERVICE_INVOICES_URL, 'http://localhost:8086')
+    auth: resolveServiceUrl(import.meta.env.VITE_SERVICE_AUTH_URL, getBrowserBaseUrl(8080)),
+    platform: resolveServiceUrl(import.meta.env.VITE_SERVICE_PLATFORM_URL, getBrowserBaseUrl(8081)),
+    catalog: resolveServiceUrl(import.meta.env.VITE_SERVICE_CATALOG_URL, getBrowserBaseUrl(8081)),
+    inventory: resolveServiceUrl(import.meta.env.VITE_SERVICE_INVENTORY_URL, getBrowserBaseUrl(8082)),
+    sales: resolveServiceUrl(import.meta.env.VITE_SERVICE_SALES_URL, getBrowserBaseUrl(8083)),
+    billing: resolveServiceUrl(import.meta.env.VITE_SERVICE_BILLING_URL, getBrowserBaseUrl(8084)),
+    payments: resolveServiceUrl(import.meta.env.VITE_SERVICE_PAYMENTS_URL, getBrowserBaseUrl(8085)),
+    invoices: resolveServiceUrl(import.meta.env.VITE_SERVICE_INVOICES_URL, getBrowserBaseUrl(8086))
   }
 }

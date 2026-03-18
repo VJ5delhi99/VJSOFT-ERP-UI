@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { InputField } from '../components/FormField'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
+import { normalizeApiError } from '../services/apiClient'
 
 interface LoginFormValues {
   username: string
@@ -14,6 +16,7 @@ export default function Login() {
   const location = useLocation()
   const { login, status } = useAuth()
   const { showToast } = useToast()
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -27,24 +30,29 @@ export default function Login() {
 
   async function onSubmit(values: LoginFormValues) {
     const redirectPath = (location.state as { from?: string } | null)?.from || '/dashboard'
+    setSubmitError(null)
 
     try {
       await login(values.username, values.password)
       navigate(redirectPath, { replace: true })
-    } catch {
-      showToast('Sign in failed', 'Use the AuthService seed account or a valid backend identity.', 'danger')
+    } catch (error) {
+      const normalizedError = normalizeApiError(error)
+      setSubmitError(normalizedError.message)
+      showToast('Sign in failed', normalizedError.message, 'danger')
     }
   }
 
   return (
     <div className="auth-page">
       <section className="auth-page__hero">
-        <span className="page-header__eyebrow">Modern ERP Workspace</span>
-        <h1>Operate finance, inventory, tenants, and orders from one control surface.</h1>
-        <p>
-          The frontend is structured for microservice backends, role-aware access, and AI-ready insights without coupling
-          modules together.
-        </p>
+        <div className="auth-page__intro">
+          <span className="page-header__eyebrow">Edgeonix ERP</span>
+          <h1>Operate finance, inventory, tenants, and orders from one clean control surface.</h1>
+          <p>
+            Edgeonix is structured for microservice backends, role-aware access, and AI-ready insights without coupling
+            modules together.
+          </p>
+        </div>
 
         <div className="auth-page__highlights">
           <article>
@@ -72,6 +80,7 @@ export default function Login() {
             <InputField
               label="Username"
               placeholder="Enter role or email"
+              autoComplete="username"
               error={errors.username?.message}
               registration={register('username', { required: 'Username is required.' })}
             />
@@ -79,9 +88,11 @@ export default function Login() {
               label="Password"
               type="password"
               placeholder="Enter password"
+              autoComplete="current-password"
               error={errors.password?.message}
               registration={register('password', { required: 'Password is required.' })}
             />
+            {submitError ? <div className="form-alert form-alert--danger">{submitError}</div> : null}
             <button type="submit" className="primary-button" disabled={status === 'loading'}>
               {status === 'loading' ? 'Signing in...' : 'Sign in'}
             </button>

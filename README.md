@@ -14,23 +14,35 @@ docker build -t edgeonix-erp-ui `
   --build-arg VITE_APP_ENV=production `
   --build-arg VITE_ENABLE_APP_LOGS=false `
   --build-arg VITE_AUTH_DEVICE_ID=edgeonix-erp-ui `
-  --build-arg VITE_SERVICE_AUTH_URL=http://ERP.VjSoftEdge.com:8080 `
-  --build-arg VITE_SERVICE_PLATFORM_URL=http://ERP.VjSoftEdge.com:8081 `
-  --build-arg VITE_SERVICE_CATALOG_URL=http://ERP.VjSoftEdge.com:8081 `
-  --build-arg VITE_SERVICE_INVENTORY_URL=http://ERP.VjSoftEdge.com:8082 `
-  --build-arg VITE_SERVICE_SALES_URL=http://ERP.VjSoftEdge.com:8083 `
-  --build-arg VITE_SERVICE_BILLING_URL=http://ERP.VjSoftEdge.com:8084 `
-  --build-arg VITE_SERVICE_PAYMENTS_URL=http://ERP.VjSoftEdge.com:8085 `
-  --build-arg VITE_SERVICE_INVOICES_URL=http://ERP.VjSoftEdge.com:8086 `
   .
 ```
 
 ### Run
 
 ```powershell
-docker run -d --name edgeonix-erp-ui --restart unless-stopped -p 80:80 edgeonix-erp-ui
+docker run -d --name edgeonix-erp-ui --restart unless-stopped `
+  --add-host=host.docker.internal:host-gateway `
+  -p 80:80 `
+  edgeonix-erp-ui
 ```
 
 Point the DNS record for `ERP.VjSoftEdge.com` to the Docker host.
 
-If you terminate TLS with a reverse proxy, change the API build args to `https://...` or proxy those backend services through the same host.
+The production image proxies `/api/...` requests through the same host, so the browser does not need to call `:8080` through `:8086` directly.
+
+You can override the backend targets at runtime if needed:
+
+```powershell
+docker run -d --name edgeonix-erp-ui --restart unless-stopped `
+  --add-host=host.docker.internal:host-gateway `
+  -e AUTH_UPSTREAM=host.docker.internal:8080 `
+  -e PLATFORM_UPSTREAM=host.docker.internal:8081 `
+  -e CATALOG_UPSTREAM=host.docker.internal:8081 `
+  -e INVENTORY_UPSTREAM=host.docker.internal:8082 `
+  -e SALES_UPSTREAM=host.docker.internal:8083 `
+  -e BILLING_UPSTREAM=host.docker.internal:8084 `
+  -e PAYMENTS_UPSTREAM=host.docker.internal:8085 `
+  -e INVOICES_UPSTREAM=host.docker.internal:8086 `
+  -p 80:80 `
+  edgeonix-erp-ui
+```

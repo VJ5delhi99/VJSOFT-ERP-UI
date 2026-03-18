@@ -97,13 +97,24 @@ export function normalizeApiError(error: unknown): ApiError {
       return {
         message: responseData.message,
         status,
-        code: typeof responseData.code === 'string' ? responseData.code : undefined
+        code:
+          typeof responseData.errorCode === 'string'
+            ? responseData.errorCode
+            : typeof responseData.code === 'string'
+              ? responseData.code
+              : undefined
+      }
+    }
+
+    if (!status && (error.code === AxiosError.ERR_NETWORK || error.message === 'Network Error')) {
+      return {
+        message: 'Unable to reach the service. Check the API host, CORS policy, and HTTP/HTTPS configuration.'
       }
     }
 
     const message =
       status === 401
-        ? 'Your session has expired. Please sign in again.'
+        ? 'Invalid username or password.'
         : status === 403
           ? 'You do not have permission to complete this action.'
           : status === 404
