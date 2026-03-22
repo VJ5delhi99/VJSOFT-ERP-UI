@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import { InputField, SelectField } from '../components/FormField'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
@@ -109,6 +110,7 @@ export default function Orders() {
   const { canAccess } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState<'revenue' | 'delivery'>('revenue')
   const [customers, setCustomers] = useState<CustomerDto[]>([])
   const [products, setProducts] = useState<ProductDto[]>([])
   const [orders, setOrders] = useState<OrderDto[]>([])
@@ -214,7 +216,7 @@ export default function Orders() {
 
   async function submitCustomer(values: CustomerFormValues) {
     await salesService.createCustomer(values)
-    showToast('Customer added', `${values.name} is now available in your workspace.`, 'success')
+    showToast('Customer added', `${values.name} is now available in your organization.`, 'success')
     setCustomerModalOpen(false)
     await loadSalesOps()
   }
@@ -324,9 +326,9 @@ export default function Orders() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Sales & Service"
-        title="Sales and service"
-        description="Manage customers, orders, projects, and support work in one place."
+        eyebrow="Sales & Delivery"
+        title="Sales and delivery"
+        description="Manage customer accounts, orders, projects, and support work in one connected operating area."
         actions={
           <>
             {canViewSales ? (
@@ -360,7 +362,25 @@ export default function Orders() {
         <StatCard label="Open work" value={operationalBacklog} format="number" subtitle="Projects and cases still open" />
       </section>
 
-      {canViewSales ? (
+      <SegmentedControl
+        label="Sales and delivery sections"
+        value={activeView}
+        onChange={(value) => setActiveView(value as 'revenue' | 'delivery')}
+        options={[
+          {
+            value: 'revenue',
+            label: 'Revenue operations',
+            description: 'Customers, orders, and account insight'
+          },
+          {
+            value: 'delivery',
+            label: 'Delivery operations',
+            description: 'Projects and customer service work'
+          }
+        ]}
+      />
+
+      {activeView === 'revenue' ? (canViewSales ? (
         <>
           <DataTable
             title="Orders"
@@ -402,9 +422,8 @@ export default function Orders() {
         </>
       ) : (
         <EmptyState title="Sales area unavailable" description="This account does not currently have access to sales information." compact />
-      )}
+      )) : canViewOperations ? (
 
-      {canViewOperations ? (
         <section className="dashboard-grid dashboard-grid--balanced">
           <DataTable
             title="Projects"
@@ -454,7 +473,7 @@ export default function Orders() {
         open={customerModalOpen}
         onClose={() => setCustomerModalOpen(false)}
         title="Add customer"
-        description="Add a new customer to your workspace."
+        description="Add a new customer to your organization."
         footer={
           <>
             <button type="button" className="ghost-button" onClick={() => setCustomerModalOpen(false)}>

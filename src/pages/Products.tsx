@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import { InputField, SelectField } from '../components/FormField'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
@@ -116,6 +117,7 @@ export default function Products() {
   const { canAccess, user } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState<'catalog' | 'inventory' | 'operations'>('catalog')
   const [catalogOverview, setCatalogOverview] = useState<Awaited<ReturnType<typeof catalogService.getOverview>> | null>(null)
   const [inventoryDashboard, setInventoryDashboard] = useState<InventoryDashboardDto | null>(null)
   const [categories, setCategories] = useState<CategorySummaryDto[]>([])
@@ -467,9 +469,9 @@ export default function Products() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Products & Inventory"
-        title="Products and inventory"
-        description="Manage products, stock, purchasing, assets, and work orders in one place."
+        eyebrow="Supply Chain"
+        title="Supply chain"
+        description="Manage catalog setup, stock, purchasing, assets, and work orders from one operational area."
         actions={
           <>
             {canViewCatalog && canManageInventory ? (
@@ -498,6 +500,18 @@ export default function Products() {
         <StatCard label="Open purchase orders" value={purchaseOrders.filter((item) => item.status !== 'Received').length} format="number" subtitle="Orders still in progress" />
       </section>
 
+      <SegmentedControl
+        label="Supply chain work areas"
+        value={activeView}
+        onChange={(value) => setActiveView(value as 'catalog' | 'inventory' | 'operations')}
+        options={[
+          { value: 'catalog', label: 'Catalog', description: 'Products, categories, and suppliers' },
+          { value: 'inventory', label: 'Inventory', description: 'Stock, purchasing, and replenishment' },
+          { value: 'operations', label: 'Operations', description: 'Assets, maintenance, and work orders' }
+        ]}
+      />
+
+      {activeView === 'inventory' ? (
       <section className="dashboard-grid">
         <article className="surface-card">
           <div className="section-heading">
@@ -543,8 +557,9 @@ export default function Products() {
           </div>
         </article>
       </section>
+      ) : null}
 
-      {canViewCatalog ? (
+      {activeView === 'catalog' ? (canViewCatalog ? (
         <>
           <section className="dashboard-grid dashboard-grid--balanced">
             <article className="surface-card">
@@ -638,9 +653,9 @@ export default function Products() {
         </>
       ) : (
         <EmptyState title="Catalog unavailable" description="This account does not currently have access to product details." compact />
-      )}
+      )) : null}
 
-      {canViewInventory ? (
+      {activeView === 'inventory' ? (canViewInventory ? (
         <>
           <section className="dashboard-grid dashboard-grid--balanced">
             <DataTable
@@ -680,48 +695,52 @@ export default function Products() {
               emptyDescription="Purchase orders will appear here after they are created."
             />
           </section>
-
-          <section className="dashboard-grid dashboard-grid--balanced">
-            <DataTable
-              title="Assets"
-              description="Equipment and maintenance planning."
-              columns={[
-                { key: 'assetTag', title: 'Asset', sortable: true, render: (row) => <div className="table-primary"><strong>{row.assetTag}</strong><span>{row.name}</span></div> },
-                { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={row.maintenanceRiskScore > 70 ? 'danger' : 'info'} /> },
-                { key: 'nextServiceDueAt', title: 'Next service', sortable: true, render: (row) => formatDate(row.nextServiceDueAt) },
-                { key: 'conditionScore', title: 'Condition', sortable: true, align: 'right', render: (row) => `${row.conditionScore}%` },
-                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openMaintenanceModal(row)}>Record maintenance</button> : 'View details' }
-              ]}
-              data={assets}
-              rowKey="id"
-              searchKeys={['assetTag', 'name', 'category', 'status']}
-              searchPlaceholder="Search assets"
-              emptyTitle="No assets"
-              emptyDescription="Assets will appear here when they are added to the workspace."
-            />
-
-            <DataTable
-              title="Work orders"
-              description="Production work and status updates."
-              columns={[
-                { key: 'workOrderNumber', title: 'Work order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.workOrderNumber}</strong><span>{row.productName}</span></div> },
-                { key: 'workCenter', title: 'Work center', sortable: true },
-                { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={workOrderTone(row.status)} /> },
-                { key: 'scheduledStart', title: 'Start', sortable: true, render: (row) => formatDateTime(row.scheduledStart) },
-                { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openWorkOrderStatusModal(row)}>Update status</button> : 'View details' }
-              ]}
-              data={workOrders}
-              rowKey="id"
-              searchKeys={['workOrderNumber', 'productName', 'workCenter', 'status']}
-              searchPlaceholder="Search work orders"
-              emptyTitle="No work orders"
-              emptyDescription="Work orders will appear here after they are created."
-            />
-          </section>
         </>
       ) : (
         <EmptyState title="Inventory unavailable" description="This account does not currently have access to inventory information." compact />
-      )}
+      )) : null}
+
+      {activeView === 'operations' ? (canViewInventory ? (
+        <section className="dashboard-grid dashboard-grid--balanced">
+          <DataTable
+            title="Assets"
+            description="Equipment and maintenance planning."
+            columns={[
+              { key: 'assetTag', title: 'Asset', sortable: true, render: (row) => <div className="table-primary"><strong>{row.assetTag}</strong><span>{row.name}</span></div> },
+              { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={row.maintenanceRiskScore > 70 ? 'danger' : 'info'} /> },
+              { key: 'nextServiceDueAt', title: 'Next service', sortable: true, render: (row) => formatDate(row.nextServiceDueAt) },
+              { key: 'conditionScore', title: 'Condition', sortable: true, align: 'right', render: (row) => `${row.conditionScore}%` },
+              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openMaintenanceModal(row)}>Record maintenance</button> : 'View details' }
+            ]}
+            data={assets}
+            rowKey="id"
+            searchKeys={['assetTag', 'name', 'category', 'status']}
+            searchPlaceholder="Search assets"
+            emptyTitle="No assets"
+            emptyDescription="Assets will appear here when they are added to the organization."
+          />
+
+          <DataTable
+            title="Work orders"
+            description="Production work and status updates."
+            columns={[
+              { key: 'workOrderNumber', title: 'Work order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.workOrderNumber}</strong><span>{row.productName}</span></div> },
+              { key: 'workCenter', title: 'Work center', sortable: true },
+              { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={workOrderTone(row.status)} /> },
+              { key: 'scheduledStart', title: 'Start', sortable: true, render: (row) => formatDateTime(row.scheduledStart) },
+              { key: 'actions', title: 'Actions', render: (row) => canManageInventory ? <button type="button" className="ghost-button" onClick={() => openWorkOrderStatusModal(row)}>Update status</button> : 'View details' }
+            ]}
+            data={workOrders}
+            rowKey="id"
+            searchKeys={['workOrderNumber', 'productName', 'workCenter', 'status']}
+            searchPlaceholder="Search work orders"
+            emptyTitle="No work orders"
+            emptyDescription="Work orders will appear here after they are created."
+          />
+        </section>
+      ) : (
+        <EmptyState title="Operations unavailable" description="This account does not currently have access to asset or work-order information." compact />
+      )) : null}
 
       <Modal
         open={categoryModalOpen}
@@ -1001,7 +1020,7 @@ export default function Products() {
         onConfirm={() => void archiveProduct()}
         title={archiveTarget ? `Archive ${archiveTarget.name}?` : 'Archive product?'}
         description="The product will be marked inactive and removed from active product lists."
-        note={user?.isDemoUser ? 'This only changes demo workspace data and can be reset from the demo banner.' : undefined}
+        note={user?.isDemoUser ? 'This only changes sample organization data and can be refreshed from the sample banner.' : undefined}
         confirmLabel="Archive product"
         loading={archiveSubmitting}
       />

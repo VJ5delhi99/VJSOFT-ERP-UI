@@ -1,4 +1,13 @@
-import type { AiReadinessDto, AuditTrailEntryDto, DemoStatusDto, NotificationDto, OutboxMessageDto, PlatformContextDto } from '../types'
+import type {
+  AiReadinessDto,
+  AuditTrailEntryDto,
+  DemoStatusDto,
+  NotificationDto,
+  OrganizationOverviewDto,
+  OutboxMessageDto,
+  PlatformContextDto,
+  PlatformOperationsSummaryDto
+} from '../types'
 import { requestGet, requestPost } from './apiClient'
 
 export const platformService = {
@@ -10,6 +19,12 @@ export const platformService = {
   },
   getContext() {
     return requestGet<PlatformContextDto>('platform', '/api/platform/context')
+  },
+  getOrganizationOverview() {
+    return requestGet<OrganizationOverviewDto>('platform', '/api/platform/organization-overview')
+  },
+  getOperationsSummary() {
+    return requestGet<PlatformOperationsSummaryDto>('platform', '/api/platform/operations-summary')
   },
   getAudit(take = 50) {
     return requestGet<AuditTrailEntryDto[]>('platform', '/api/platform/audit', {

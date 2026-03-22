@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatOrganizationName, formatRoleName } from '@shared/index'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
@@ -7,34 +8,30 @@ import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
 import { apiConfig } from '../config/api'
 import { useAuth } from '../hooks/useAuth'
+import { operationsService } from '../services/operationsService'
 import { platformService } from '../services/platformService'
-import type { AiReadinessDto, PlatformContextDto } from '../types'
+import type { AiReadinessDto, PlatformContextDto, ServiceHealthDto } from '../types'
 import { formatDateTime } from '../utils/format'
-
-interface ServiceRow {
-  id: string
-  service: string
-  url: string
-  note: string
-}
 
 export default function Settings() {
   const { user, expiresAtUtc, canAccess } = useAuth()
   const [loading, setLoading] = useState(true)
   const [context, setContext] = useState<PlatformContextDto | null>(null)
   const [aiReadiness, setAiReadiness] = useState<AiReadinessDto | null>(null)
+  const [serviceHealth, setServiceHealth] = useState<ServiceHealthDto[]>([])
 
   const canManageUsers = canAccess(undefined, ['CanManageUsers'])
 
   useEffect(() => {
     let isMounted = true
 
-    async function loadSettings() {
+    async function loadConfiguration() {
       setLoading(true)
 
-      const [contextResult, aiReadinessResult] = await Promise.allSettled([
+      const [contextResult, aiReadinessResult, healthResult] = await Promise.allSettled([
         platformService.getContext(),
-        canManageUsers ? platformService.getAiReadiness() : Promise.resolve(null)
+        canManageUsers ? platformService.getAiReadiness() : Promise.resolve(null),
+        canManageUsers ? operationsService.getServiceHealth() : Promise.resolve([])
       ])
 
       if (!isMounted) {
@@ -43,60 +40,49 @@ export default function Settings() {
 
       setContext(contextResult.status === 'fulfilled' ? contextResult.value : null)
       setAiReadiness(aiReadinessResult.status === 'fulfilled' ? aiReadinessResult.value : null)
+      setServiceHealth(healthResult.status === 'fulfilled' ? healthResult.value : [])
       setLoading(false)
     }
 
-    void loadSettings()
+    void loadConfiguration()
 
     return () => {
       isMounted = false
     }
   }, [canManageUsers])
 
-  const services = useMemo<ServiceRow[]>(
-    () =>
-      Object.entries(apiConfig.services).map(([service, url]) => ({
-        id: service,
-        service,
-        url,
-        note:
-          service === 'platform'
-            ? 'Handles shared workspace details, updates, and admin tools.'
-            : 'Set from configuration for this area of the ERP.'
-      })),
-    []
+  const activeIntegrations = useMemo(
+    () => serviceHealth.filter((service) => service.status === 'online').length,
+    [serviceHealth]
   )
+  const enabledAiUseCases = aiReadiness?.useCases.filter((item) => item.enabled).length ?? 0
+  const organizationName = formatOrganizationName(context?.tenantId || user?.tenantId)
 
   if (loading) {
-    return <Spinner fullPage label="Loading settings" />
+    return <Spinner fullPage label="Loading configuration" />
   }
 
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Settings"
-        title="System settings"
-        description="Review sign-in details, connected services, and AI setup for this workspace."
+        eyebrow="Configuration"
+        title="Configuration and integrations"
+        description="Review session context, connection readiness, and AI setup for this organization."
       />
 
       <section className="stat-grid">
-        <StatCard label="Connected services" value={services.length} format="number" subtitle="Available system connections" />
-        <StatCard label="Assigned roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles on this account" />
-        <StatCard label="Effective permissions" value={user?.permissions.length ?? 0} format="number" subtitle="Available actions" />
-        <StatCard
-          label="AI use cases"
-          value={aiReadiness?.useCases.filter((item) => item.enabled).length ?? 0}
-          format="number"
-          subtitle="Active AI setup items"
-        />
+        <StatCard label="Connected services" value={serviceHealth.length || Object.keys(apiConfig.services).length} format="number" subtitle="Configured ERP modules" />
+        <StatCard label="Healthy integrations" value={activeIntegrations} format="number" subtitle="Services responding to health checks" />
+        <StatCard label="Access roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles assigned to this account" />
+        <StatCard label="AI use cases" value={enabledAiUseCases} format="number" subtitle="Enabled AI capabilities" />
       </section>
 
       <section className="dashboard-grid dashboard-grid--balanced">
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Session details</h3>
-              <p>Current sign-in details for this workspace.</p>
+              <h3>Session context</h3>
+              <p>Current sign-in and support details for this organization.</p>
             </div>
           </div>
           <div className="detail-grid">
@@ -112,34 +98,34 @@ export default function Settings() {
                   <dd>{user?.email || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Workspace</dt>
-                  <dd>{user?.tenantId || '-'}</dd>
+                  <dt>Organization</dt>
+                  <dd>{organizationName}</dd>
                 </div>
                 <div>
-                  <dt>Expires</dt>
+                  <dt>Session expires</dt>
                   <dd>{expiresAtUtc ? formatDateTime(expiresAtUtc) : '-'}</dd>
                 </div>
               </dl>
             </div>
 
             <div className="detail-card">
-              <h4>System details</h4>
+              <h4>Support details</h4>
               <dl className="detail-list">
-                <div>
-                  <dt>Environment</dt>
-                  <dd>{apiConfig.environment}</dd>
-                </div>
                 <div>
                   <dt>Support reference</dt>
                   <dd>{context?.correlationId || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Request timeout</dt>
-                  <dd>{apiConfig.requestTimeoutMs} ms</dd>
+                  <dt>Environment</dt>
+                  <dd>{apiConfig.environment}</dd>
                 </div>
                 <div>
-                  <dt>Auth device id</dt>
-                  <dd>{apiConfig.authDeviceId}</dd>
+                  <dt>Primary role</dt>
+                  <dd>{user?.roles[0] ? formatRoleName(user.roles[0]) : '-'}</dd>
+                </div>
+                <div>
+                  <dt>Request timeout</dt>
+                  <dd>{apiConfig.requestTimeoutMs} ms</dd>
                 </div>
               </dl>
             </div>
@@ -149,68 +135,81 @@ export default function Settings() {
         <article className="surface-card">
           <div className="section-heading">
             <div>
-              <h3>Connection notes</h3>
-              <p>Helpful reminders about how this workspace connects to the ERP.</p>
+              <h3>Configuration guidance</h3>
+              <p>Operational reminders for keeping the organization healthy and supportable.</p>
             </div>
           </div>
           <div className="stack-list">
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Connections are config-driven</strong>
-                <p>Each module uses the shared service list instead of storing addresses inside pages.</p>
+                <strong>Connections are centrally configured</strong>
+                <p>Each business area uses the shared service registry so connection changes stay consistent across the product.</p>
               </div>
-              <StatusBadge label="Configured" tone="success" />
+              <StatusBadge label="Centralized" tone="success" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Workspace information is sent with each request</strong>
-                <p>The app includes the signed-in workspace so each service returns the right data.</p>
+                <strong>Organization context is enforced</strong>
+                <p>Requests carry organization context so each service returns the correct business data.</p>
               </div>
-              <StatusBadge label="Required" tone="warning" />
+              <StatusBadge label="Protected" tone="warning" />
             </div>
             <div className="list-row list-row--stacked">
               <div>
-                <strong>Browsers must be allowed to reach each service</strong>
-                <p>If the app and APIs run on different addresses, those connections must be allowed in the environment.</p>
+                <strong>Support references matter</strong>
+                <p>Use the support reference above whenever you need to trace activity with the product or platform team.</p>
               </div>
-              <StatusBadge label="Check setup" tone="danger" />
+              <StatusBadge label="Support ready" tone="info" />
             </div>
           </div>
         </article>
       </section>
 
       <DataTable
-        title="Connected services"
-        description="Connection details for each ERP area."
+        title="Connected modules"
+        description="Connection readiness across the ERP service landscape."
         columns={[
           {
             key: 'service',
-            title: 'Service',
+            title: 'Module',
             sortable: true,
             render: (row) => (
               <div className="table-primary">
                 <strong>{row.service}</strong>
-                <span>{row.note}</span>
+                <span>{row.area}</span>
               </div>
             )
           },
           {
-            key: 'url',
+            key: 'statusLabel',
+            title: 'Readiness',
+            sortable: true,
+            render: (row) => <StatusBadge label={row.statusLabel} tone={row.status === 'online' ? 'success' : row.status === 'degraded' ? 'warning' : 'danger'} />
+          },
+          {
+            key: 'detail',
+            title: 'Operational note',
+            render: (row) => row.detail
+          },
+          {
+            key: 'baseUrl',
             title: 'Address',
-            render: (row) => row.url
+            render: (row) => row.baseUrl
           }
         ]}
-        data={services}
+        data={serviceHealth}
         rowKey="id"
-        searchKeys={['service', 'url', 'note']}
-        searchPlaceholder="Search services"
+        searchKeys={['service', 'area', 'detail', 'baseUrl']}
+        searchPlaceholder="Search connected modules"
+        emptyTitle="No connection details"
+        emptyDescription="Connection details are not available right now."
       />
 
       <article className="surface-card">
         <div className="section-heading">
           <div>
-            <h3>AI setup</h3>
-            <p>Available AI provider and use-case setup for this workspace.</p>
+            <h3>AI readiness</h3>
+            <p>Available AI provider and enabled use cases for this organization.</p>
           </div>
         </div>
         {aiReadiness ? (
@@ -218,9 +217,9 @@ export default function Settings() {
             <div className="list-row">
               <div>
                 <strong>{aiReadiness.provider}</strong>
-                <p>Current provider</p>
+                <p>Configured AI provider</p>
               </div>
-              <StatusBadge label={aiReadiness.aiEnabled ? 'Enabled' : 'Disabled'} tone={aiReadiness.aiEnabled ? 'success' : 'warning'} />
+              <StatusBadge label={aiReadiness.aiEnabled ? 'Enabled' : 'Configured only'} tone={aiReadiness.aiEnabled ? 'success' : 'warning'} />
             </div>
             {aiReadiness.useCases.map((item) => (
               <div key={item.name} className="list-row">
@@ -235,11 +234,7 @@ export default function Settings() {
             ))}
           </div>
         ) : (
-          <EmptyState
-            title="AI setup is limited"
-            description="AI setup details are available only to users who manage access."
-            compact
-          />
+          <EmptyState title="AI readiness is limited" description="AI setup details are available to administrators who manage access and platform setup." compact />
         )}
       </article>
     </div>

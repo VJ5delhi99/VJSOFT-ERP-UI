@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState'
 import { InputField, SelectField } from '../components/FormField'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
@@ -80,6 +81,7 @@ export default function Finance() {
   const { hasPermission } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState<'receivables' | 'cash' | 'payroll'>('receivables')
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [billingDashboard, setBillingDashboard] = useState<Awaited<ReturnType<typeof financeService.getBillingDashboard>> | null>(null)
   const [executiveDashboard, setExecutiveDashboard] = useState<Awaited<ReturnType<typeof financeService.getExecutiveDashboard>> | null>(null)
@@ -252,6 +254,19 @@ export default function Finance() {
         <StatCard label="Past-due balance" value={billingDashboard?.overdueBalance ?? 0} format="currency" subtitle="Needs follow-up" />
       </section>
 
+      <SegmentedControl
+        label="Finance work areas"
+        value={activeView}
+        onChange={(value) => setActiveView(value as 'receivables' | 'cash' | 'payroll')}
+        options={[
+          { value: 'receivables', label: 'Receivables', description: 'Invoices, payments, and collections' },
+          { value: 'cash', label: 'Cash outlook', description: 'Forecasts, aging, and finance alerts' },
+          { value: 'payroll', label: 'Payroll', description: 'Workforce payroll visibility' }
+        ]}
+      />
+
+      {activeView === 'cash' ? (
+      <>
       <section className="dashboard-grid">
         <article className="surface-card">
           <div className="section-heading">
@@ -360,8 +375,10 @@ export default function Finance() {
           )}
         </article>
       </section>
+      </>
+      ) : null}
 
-      {state.payroll ? (
+      {activeView === 'payroll' ? (state.payroll ? (
         <article className="surface-card">
           <div className="section-heading">
             <div>
@@ -406,8 +423,12 @@ export default function Finance() {
             </div>
           </div>
         </article>
-      ) : null}
+      ) : (
+        <EmptyState title="Payroll visibility unavailable" description="Payroll details are available to accounts with payroll access." compact />
+      )) : null}
 
+      {activeView === 'receivables' ? (
+      <>
       <DataTable
         title="Invoices"
         description="Review invoices and open each one for payment details."
@@ -553,6 +574,8 @@ export default function Finance() {
           emptyDescription="There are no high-risk balances to review right now."
         />
       </section>
+      </>
+      ) : null}
 
       <Modal
         open={paymentModalOpen}

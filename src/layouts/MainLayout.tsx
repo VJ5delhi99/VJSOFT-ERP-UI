@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { formatOrganizationName, formatRoleName } from '@shared/index'
 import { buildBreadcrumbs, findNavigationItem, navigationItems } from '../config/navigation'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { platformService } from '../services/platformService'
-import type { DemoStatusDto, NotificationDto } from '../types'
+import type { DemoStatusDto, NavigationItem, NotificationDto } from '../types'
 import { formatRelative } from '../utils/format'
 import StatusBadge from '../components/StatusBadge'
 
@@ -49,6 +50,11 @@ function NavIcon({ icon }: { icon: string }) {
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m19.14 12.94.04-.94-.04-.94 2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94L14.5 2.7a.5.5 0 0 0-.49-.4h-4.02a.5.5 0 0 0-.49.4l-.36 2.62c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.6 8.84a.5.5 0 0 0 .12.64l2.03 1.58-.04.94.04.94L2.72 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.72 1.63.94l.36 2.62a.5.5 0 0 0 .49.4h4.02a.5.5 0 0 0 .49-.4l.36-2.62c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z" />
       </svg>
+    ),
+    platform: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 5h18v4H3V5Zm2 6h6v8H5v-8Zm8 0h6v3h-6v-3Zm0 5h6v3h-6v-3Z" />
+      </svg>
     )
   }
 
@@ -86,6 +92,13 @@ function severityTone(value: string) {
   }
 }
 
+function groupNavigation(items: NavigationItem[]) {
+  return [
+    { label: 'Operate', items: items.filter((item) => item.group === 'Operate') },
+    { label: 'Manage', items: items.filter((item) => item.group === 'Govern') }
+  ].filter((group) => group.items.length > 0)
+}
+
 export default function MainLayout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -103,9 +116,11 @@ export default function MainLayout() {
     () => navigationItems.filter((item) => canAccess(item.roles, item.permissions)),
     [canAccess]
   )
+  const groupedNavigation = useMemo(() => groupNavigation(visibleNavigation), [visibleNavigation])
   const activeItem = findNavigationItem(pathname) || visibleNavigation[0]
   const breadcrumbs = buildBreadcrumbs(pathname)
   const unreadCount = notifications.length
+  const organizationName = formatOrganizationName(user?.tenantId)
 
   useEffect(() => {
     setSidebarOpen(false)
@@ -206,10 +221,10 @@ export default function MainLayout() {
 
     try {
       await platformService.resetDemo()
-      showToast('Sample data reset', 'The demo workspace has been refreshed with the default sample data.', 'success')
+      showToast('Sample organization reset', 'The demonstration organization has been refreshed with the default sample business data.', 'success')
       window.location.reload()
     } catch {
-      showToast('Reset did not complete', 'The sample data could not be refreshed right now. Please try again shortly.', 'danger')
+      showToast('Reset did not complete', 'The sample organization could not be refreshed right now. Please try again shortly.', 'danger')
     } finally {
       setResettingDemo(false)
     }
@@ -235,36 +250,40 @@ export default function MainLayout() {
           <div className="sidebar__logo">EX</div>
           <div>
             <strong>Edgeonix ERP</strong>
-            <span>Business operations workspace</span>
+            <span>Enterprise operations platform</span>
           </div>
         </div>
 
         <div className="sidebar__tenant-card">
-          <span className="sidebar__tenant-badge">Current workspace</span>
-          <strong>{user?.tenantId || 'Workspace unavailable'}</strong>
-          <p>{user ? `${user.roles.length} access roles active` : 'Sign in to view your workspace details'}</p>
+          <span className="sidebar__tenant-badge">Current organization</span>
+          <strong>{organizationName}</strong>
+          <p>{user ? `${user.roles.length} access roles active for this company context` : 'Sign in to view organization details'}</p>
         </div>
 
         <div className="sidebar__section">
-          <span className="sidebar__section-label">Menu</span>
-          <nav className="sidebar__nav">
-            {visibleNavigation.map((item) => (
-              <NavLink
-                key={item.key}
-                to={item.path}
-                className={({ isActive }) => (isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link')}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <span className="sidebar__icon">
-                  <NavIcon icon={item.icon} />
-                </span>
-                <span>
-                  <strong>{item.label}</strong>
-                  <small>{item.description}</small>
-                </span>
-              </NavLink>
-            ))}
-          </nav>
+          {groupedNavigation.map((group) => (
+            <div key={group.label} className="sidebar__section-group">
+              <span className="sidebar__section-label">{group.label}</span>
+              <nav className="sidebar__nav" aria-label={`${group.label} navigation`}>
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.key}
+                    to={item.path}
+                    className={({ isActive }) => (isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link')}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="sidebar__icon">
+                      <NavIcon icon={item.icon} />
+                    </span>
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.description}</small>
+                    </span>
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          ))}
         </div>
 
         <div className="sidebar__footer">
@@ -293,15 +312,15 @@ export default function MainLayout() {
                   ))}
                 </ol>
               </nav>
-              <span className="topbar__eyebrow">{activeItem?.description || 'ERP workspace'}</span>
-              <h2>{activeItem?.label || 'Dashboard'}</h2>
+              <span className="topbar__eyebrow">{organizationName}</span>
+              <h2>{activeItem?.label || 'Command Center'}</h2>
             </div>
           </div>
 
           <div className="topbar__right">
             <div className="topbar__meta">
               <span>Current role</span>
-              <strong>{user?.roles[0] || 'Signed-in session'}</strong>
+              <strong>{user?.roles[0] ? formatRoleName(user.roles[0]) : 'Signed-in session'}</strong>
             </div>
 
             <div ref={notificationPanelRef} className="topbar__notifications">
@@ -321,14 +340,14 @@ export default function MainLayout() {
                 <div className="notification-popover" role="dialog" aria-label="Updates">
                   <div className="notification-popover__header">
                     <div>
-                      <strong>Updates</strong>
-                      <span>{unreadCount > 0 ? `${unreadCount} new` : "You're all caught up"}</span>
+                      <strong>Organization updates</strong>
+                      <span>{unreadCount > 0 ? `${unreadCount} new items` : "You're all caught up"}</span>
                     </div>
                     <button
                       type="button"
                       className="ghost-button"
                       onClick={() => {
-                        navigate('/companies')
+                        navigate('/organization')
                         setNotificationsOpen(false)
                       }}
                     >
@@ -339,7 +358,7 @@ export default function MainLayout() {
                   {notifications.length === 0 ? (
                     <div className="notification-popover__empty">
                       <strong>No new updates</strong>
-                      <p>Your workspace is up to date.</p>
+                      <p>Your organization is up to date.</p>
                     </div>
                   ) : (
                     <div className="notification-popover__list">
@@ -373,7 +392,7 @@ export default function MainLayout() {
               <div className="topbar__avatar">{user?.userName?.slice(0, 1).toUpperCase() || 'U'}</div>
               <div className="topbar__profile-copy">
                 <strong>{user?.userName || 'User account'}</strong>
-                <span>{user?.email || user?.tenantId || 'Workspace details unavailable'}</span>
+                <span>{user?.email || organizationName}</span>
               </div>
             </div>
 
@@ -387,13 +406,13 @@ export default function MainLayout() {
           {user?.isDemoUser ? (
             <section className="demo-banner" aria-label="Demo mode status">
               <div className="demo-banner__copy">
-                <span className="page-header__eyebrow">Demo workspace</span>
-                <strong>You are viewing sample business data.</strong>
-                <p>Any changes stay in the demo workspace and can be reset at any time.</p>
+                <span className="page-header__eyebrow">Sample organization</span>
+                <strong>You are viewing demonstration business data.</strong>
+                <p>Changes stay inside the sample organization and can be refreshed at any time.</p>
               </div>
               {demoStatus?.canReset ? (
                 <button type="button" className="ghost-button" onClick={() => void handleResetDemo()} disabled={resettingDemo}>
-                  {resettingDemo ? 'Resetting sample data...' : 'Reset sample data'}
+                  {resettingDemo ? 'Refreshing sample data...' : 'Refresh sample data'}
                 </button>
               ) : null}
             </section>

@@ -13,6 +13,7 @@ const ProductsPage = lazy(() => import('./pages/Products'))
 const FinancePage = lazy(() => import('./pages/Finance'))
 const ReportsPage = lazy(() => import('./pages/Reports'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
+const PlatformOpsPage = lazy(() => import('./pages/PlatformOps'))
 const LoginPage = lazy(() => import('./pages/Login'))
 const UnauthorizedPage = lazy(() => import('./pages/Unauthorized'))
 const NotFoundPage = lazy(() => import('./pages/NotFound'))
@@ -48,7 +49,7 @@ function AccessGuard({
 
 export default function App() {
   return (
-    <Suspense fallback={<Spinner fullPage label="Preparing workspace" />}>
+    <Suspense fallback={<Spinner fullPage label="Preparing your organization hub" />}>
       <Routes>
         <Route
           path="/login"
@@ -62,17 +63,28 @@ export default function App() {
         <Route path="/" element={<ProtectedLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="users" element={<Navigate to="/access-control" replace />} />
           <Route
-            path="users"
+            path="access-control"
             element={
               <AccessGuard permissions={['CanManageUsers']}>
                 <UsersPage />
               </AccessGuard>
             }
           />
-          <Route path="companies" element={<CompaniesPage />} />
+          <Route path="companies" element={<Navigate to="/organization" replace />} />
+          <Route path="organization" element={<CompaniesPage />} />
           <Route
-            path="orders"
+            path="platform-operations"
+            element={
+              <AccessGuard permissions={['CanManageUsers']}>
+                <PlatformOpsPage />
+              </AccessGuard>
+            }
+          />
+          <Route path="orders" element={<Navigate to="/sales-operations" replace />} />
+          <Route
+            path="sales-operations"
             element={
               <AccessGuard
                 roles={['Admin', 'SalesManager', 'ProjectManager', 'SupportLead', 'AssetManager', 'ManufacturingPlanner', 'HRManager']}
@@ -81,8 +93,9 @@ export default function App() {
               </AccessGuard>
             }
           />
+          <Route path="products" element={<Navigate to="/supply-chain" replace />} />
           <Route
-            path="products"
+            path="supply-chain"
             element={
               <AccessGuard
                 roles={['Admin', 'CatalogManager', 'InventoryManager', 'ProcurementManager', 'SalesManager', 'FinanceManager', 'AssetManager', 'ManufacturingPlanner']}
@@ -99,15 +112,17 @@ export default function App() {
               </AccessGuard>
             }
           />
+          <Route path="reports" element={<Navigate to="/analytics" replace />} />
           <Route
-            path="reports"
+            path="analytics"
             element={
               <AccessGuard permissions={['CanViewFinance']}>
                 <ReportsPage />
               </AccessGuard>
             }
           />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<Navigate to="/configuration" replace />} />
+          <Route path="configuration" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

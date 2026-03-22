@@ -11,7 +11,7 @@ export default function Spinner({ label = 'Loading', fullPage = false }: Spinner
           <div className="spinner__ring" />
           <div className="spinner__content">
             <strong>{label}</strong>
-            <span className="spinner__label">Getting the latest information for your workspace.</span>
+            <span className="spinner__label">Getting the latest information for your organization.</span>
           </div>
         </div>
         <div className="spinner__skeleton-grid" aria-hidden="true">

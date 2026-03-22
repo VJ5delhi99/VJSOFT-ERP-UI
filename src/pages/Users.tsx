@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatPermissionName, formatRoleName } from '@shared/index'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
@@ -40,19 +41,19 @@ function modulesForRole(role: UserRole) {
   const modules = []
 
   if (roleGroups.catalogAccess.includes(role)) {
-    modules.push('Catalog')
+    modules.push('Catalog setup')
   }
   if (roleGroups.inventoryAccess.includes(role)) {
-    modules.push('Inventory')
+    modules.push('Supply chain')
   }
   if (roleGroups.salesAccess.includes(role)) {
-    modules.push('Sales')
+    modules.push('Sales delivery')
   }
   if (roleGroups.financeAccess.includes(role)) {
     modules.push('Finance')
   }
   if (roleGroups.operationsAccess.includes(role)) {
-    modules.push('Operations')
+    modules.push('Service operations')
   }
 
   return modules
@@ -116,9 +117,9 @@ export default function Users() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Access"
-        title="User access"
-        description="Review access roles, recent activity, and message delivery in one place."
+        eyebrow="Access & Audit"
+        title="Access and audit"
+        description="Review role coverage, recent administrative activity, and delivery history in one place."
       />
 
       <section className="stat-grid">
@@ -133,7 +134,7 @@ export default function Users() {
           <div className="section-heading">
             <div>
               <h3>Signed-in user</h3>
-              <p>Signed-in user details and current workspace information.</p>
+              <p>Signed-in user details and current organization information.</p>
             </div>
           </div>
           <div className="detail-grid">
@@ -149,7 +150,7 @@ export default function Users() {
                   <dd>{user?.email || '-'}</dd>
                 </div>
                 <div>
-                  <dt>Workspace</dt>
+                  <dt>Organization</dt>
                   <dd>{user?.tenantId || '-'}</dd>
                 </div>
                 <div>
@@ -163,7 +164,7 @@ export default function Users() {
               <h4>Session details</h4>
               <dl className="detail-list">
                 <div>
-                  <dt>User id</dt>
+                  <dt>User ID</dt>
                   <dd>{context?.userId || '-'}</dd>
                 </div>
                 <div>
@@ -172,11 +173,11 @@ export default function Users() {
                 </div>
                 <div>
                   <dt>Roles</dt>
-                  <dd>{user?.roles.join(', ') || '-'}</dd>
+                  <dd>{user?.roles.map((role) => formatRoleName(role)).join(', ') || '-'}</dd>
                 </div>
                 <div>
                   <dt>Permissions</dt>
-                  <dd>{user?.permissions.join(', ') || 'No direct permissions'}</dd>
+                  <dd>{user?.permissions.map((permission) => formatPermissionName(permission)).join(', ') || 'No direct permissions'}</dd>
                 </div>
               </dl>
             </div>
@@ -191,34 +192,34 @@ export default function Users() {
             </div>
           </div>
           <div className="stack-list">
-            <div className="list-row list-row--stacked">
-              <div>
-                <strong>User access is role-based</strong>
-                <p>Pages and actions follow the same role and permission rules used by the backend.</p>
+              <div className="list-row list-row--stacked">
+                <div>
+                  <strong>Access is role-based</strong>
+                  <p>Pages and actions follow the same role and permission rules enforced by the backend.</p>
+                </div>
+                <StatusBadge label="Access rules" tone="info" />
               </div>
-              <StatusBadge label="Access rules" tone="info" />
-            </div>
-            <div className="list-row list-row--stacked">
-              <div>
-                <strong>Activity and message delivery are visible here</strong>
-                <p>Administrators can review recent changes and outbound updates from one page.</p>
+              <div className="list-row list-row--stacked">
+                <div>
+                  <strong>Activity and delivery history stay visible</strong>
+                  <p>Administrators can review recent changes and outbound delivery records from one control point.</p>
+                </div>
+                <StatusBadge label="Admin tools" tone="success" />
               </div>
-              <StatusBadge label="Admin tools" tone="success" />
-            </div>
-            <div className="list-row list-row--stacked">
-              <div>
-                <strong>Visibility stays aligned with access</strong>
-                <p>Menu items and buttons only appear when the signed-in role can use them.</p>
+              <div className="list-row list-row--stacked">
+                <div>
+                  <strong>Visibility stays aligned with policy</strong>
+                  <p>Menu items and buttons only appear when the signed-in role can use them.</p>
+                </div>
+                <StatusBadge label="Policy aligned" tone="warning" />
               </div>
-              <StatusBadge label="Aligned" tone="warning" />
             </div>
-          </div>
-        </article>
+          </article>
       </section>
 
       <DataTable
         title="Roles and access"
-        description="Roles and the actions available to each one."
+        description="Roles and the areas available to each one."
         columns={[
           {
             key: 'role',
@@ -226,7 +227,7 @@ export default function Users() {
             sortable: true,
             render: (row) => (
               <div className="table-primary">
-                <strong>{row.role}</strong>
+                <strong>{formatRoleName(row.role)}</strong>
                 <span>{row.modules.join(', ') || 'General access'}</span>
               </div>
             )
@@ -239,7 +240,7 @@ export default function Users() {
           {
             key: 'permissions',
             title: 'Permissions',
-            render: (row) => (row.permissions.length > 0 ? row.permissions.join(', ') : 'Handled through the role')
+            render: (row) => (row.permissions.length > 0 ? row.permissions.map((permission) => formatPermissionName(permission)).join(', ') : 'Handled through the role')
           }
         ]}
         data={roleMatrix}
@@ -249,8 +250,8 @@ export default function Users() {
       />
 
       <DataTable
-        title="Recent activity"
-        description="Recent access and admin changes."
+        title="Recent audit activity"
+        description="Recent access and administration changes."
         columns={[
           {
             key: 'occurredAt',
@@ -295,7 +296,7 @@ export default function Users() {
       />
 
       <DataTable
-        title="Message delivery"
+        title="Delivery history"
         description="Outbound messages and delivery progress."
         columns={[
           {

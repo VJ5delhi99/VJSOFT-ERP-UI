@@ -362,9 +362,9 @@ export default function Dashboard() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Overview"
-        title="Business overview"
-        description="Review sales, cash, stock, and recent updates in one place."
+        eyebrow="Command Center"
+        title="Business command center"
+        description="Review revenue, cash, supply, and current priorities from one role-aware dashboard."
       />
 
       <section className="stat-grid">

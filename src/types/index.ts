@@ -91,12 +91,26 @@ export interface TrendDatum {
 
 export interface NavigationItem {
   key: string
+  group: 'Operate' | 'Govern'
   label: string
   path: string
   description: string
-  icon: 'dashboard' | 'access' | 'tenant' | 'orders' | 'products' | 'finance' | 'reports' | 'settings'
+  icon: 'dashboard' | 'access' | 'tenant' | 'orders' | 'products' | 'finance' | 'reports' | 'settings' | 'platform'
   roles?: UserRole[]
   permissions?: Permission[]
+}
+
+export interface ServiceHealthDto {
+  id: string
+  service: string
+  area: string
+  status: 'online' | 'degraded' | 'offline'
+  statusLabel: string
+  baseUrl: string
+  checkedAt: string
+  detail: string
+  pendingOutboxMessages?: number
+  tenants?: number
 }
 
 export interface DataTableColumn<T> {
@@ -511,6 +525,30 @@ export interface PlatformContextDto {
   userName: string
   roles: UserRole[]
   correlationId: string
+}
+
+export interface OrganizationOverviewDto {
+  tenantId: string
+  activeProducts: number
+  lowStockProducts: number
+  openOrders: number
+  overdueInvoices: number
+  openProjects: number
+  openTickets: number
+  openWorkOrders: number
+  inventoryValue: number
+  outstandingBalance: number
+  unreadNotifications: number
+}
+
+export interface PlatformOperationsSummaryDto {
+  tenantId: string
+  correlationId: string
+  pendingOutboxMessages: number
+  deadLetteredOutboxMessages: number
+  unreadNotifications: number
+  recentAuditEntries: number
+  usesDurableDatabase: boolean
 }
 
 export interface DemoStatusDto {

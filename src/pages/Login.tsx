@@ -18,7 +18,7 @@ const demoAccounts = [
     label: 'Admin',
     userNameOrEmail: 'admin@demo.com',
     password: 'Password123!',
-    description: 'Full access across the workspace.'
+    description: 'Full access across the organization.'
   },
   {
     label: 'Manager',
@@ -48,8 +48,8 @@ export default function Login() {
     formState: { errors }
   } = useForm<LoginFormValues>({
     defaultValues: {
-      username: 'admin',
-      password: 'ChangeMe!123!'
+      username: '',
+      password: ''
     }
   })
 
@@ -106,22 +106,22 @@ export default function Login() {
       <section className="auth-page__hero">
         <div className="auth-page__intro">
           <span className="page-header__eyebrow">Edgeonix ERP</span>
-          <h1>Run sales, inventory, finance, and service from one shared workspace.</h1>
-          <p>Sign in to manage daily work, review performance, and keep teams aligned.</p>
+          <h1>Run revenue, operations, finance, and service from one connected business platform.</h1>
+          <p>Sign in to manage daily work, review business performance, and keep every team operating from the same source of truth.</p>
         </div>
 
         <div className="auth-page__highlights">
           <article>
             <strong>Access by role</strong>
-            <p>Each person sees the pages and actions that match their responsibilities.</p>
+            <p>Each person sees the pages and actions that match their responsibilities and approvals.</p>
           </article>
           <article>
             <strong>Connected workflows</strong>
-            <p>Sales, stock, purchasing, finance, and service stay connected in one system.</p>
+            <p>Sales, stock, purchasing, finance, and service stay connected across one organization-wide system.</p>
           </article>
           <article>
-            <strong>Business insights</strong>
-            <p>Dashboards and alerts help teams spot priorities quickly.</p>
+            <strong>Operational visibility</strong>
+            <p>Dashboards, alerts, and audit history help teams spot priorities and act with confidence.</p>
           </article>
         </div>
       </section>
@@ -129,8 +129,8 @@ export default function Login() {
       <section className="auth-page__panel">
         <div className="auth-card">
           <span className="page-header__eyebrow">Sign in</span>
-          <h2>Access your ERP workspace</h2>
-          <p>Local account: admin or admin@erp.local</p>
+          <h2>Access your organization</h2>
+          <p>Use your business email or username to continue.</p>
 
           <form className="form-grid" onSubmit={handleSubmit(onSubmit)}>
             <InputField
@@ -157,8 +157,8 @@ export default function Login() {
           {demoStatus?.isEnabled ? (
             <div className="auth-card__demo">
               <div className="auth-card__demo-copy">
-                <strong>Try the demo</strong>
-                <p>Open sample business data and explore the full workspace instantly.</p>
+                <strong>Explore the sample organization</strong>
+                <p>Open a ready-to-review business scenario and explore the product with role-based access.</p>
               </div>
               <div className="demo-login-grid">
                 {demoAccounts.map((account) => {
@@ -182,8 +182,8 @@ export default function Login() {
           ) : null}
 
           <div className="auth-card__footer">
-            <span>Local password</span>
-            <strong>ChangeMe!123!</strong>
+            <span>Need help signing in?</span>
+            <strong>Contact your organization administrator</strong>
           </div>
         </div>
       </section>

@@ -134,8 +134,8 @@ export default function Reports() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Reporting"
-        title="Reports and insights"
+        eyebrow="Analytics"
+        title="Analytics and exports"
         description="Review key results, export lists, and summarize performance."
         actions={
           <button type="button" className="primary-button" onClick={() => void exportReport()} disabled={overdueInvoices.length === 0}>

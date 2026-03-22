@@ -1,83 +1,25 @@
-import { roleGroups } from './rbac'
-import type { NavigationItem } from '../types'
+import { findSharedModule, sharedModules, toRouteLabel } from '@shared/index'
+import type { NavigationItem, Permission, UserRole } from '../types'
 
-export const navigationItems: NavigationItem[] = [
-  {
-    key: 'dashboard',
-    label: 'Dashboard',
-    path: '/dashboard',
-    description: 'Business performance and key updates',
-    icon: 'dashboard'
-  },
-  {
-    key: 'users',
-    label: 'User Access',
-    path: '/users',
-    description: 'Roles, permissions, and activity',
-    icon: 'access',
-    permissions: ['CanManageUsers']
-  },
-  {
-    key: 'companies',
-    label: 'Workspace',
-    path: '/companies',
-    description: 'Workspace details and updates',
-    icon: 'tenant'
-  },
-  {
-    key: 'orders',
-    label: 'Sales & Service',
-    path: '/orders',
-    description: 'Customers, orders, projects, and support',
-    icon: 'orders',
-    roles: [...new Set([...roleGroups.salesAccess, ...roleGroups.operationsAccess])]
-  },
-  {
-    key: 'products',
-    label: 'Products & Inventory',
-    path: '/products',
-    description: 'Products, stock, purchasing, and assets',
-    icon: 'products',
-    roles: [...new Set([...roleGroups.catalogAccess, ...roleGroups.inventoryAccess])]
-  },
-  {
-    key: 'finance',
-    label: 'Finance',
-    path: '/finance',
-    description: 'Billing, payments, invoices, payroll',
-    icon: 'finance',
-    roles: roleGroups.financeAccess
-  },
-  {
-    key: 'reports',
-    label: 'Reports',
-    path: '/reports',
-    description: 'Reports, exports, and insights',
-    icon: 'reports',
-    permissions: ['CanViewFinance']
-  },
-  {
-    key: 'settings',
-    label: 'Settings',
-    path: '/settings',
-    description: 'Workspace settings and connections',
-    icon: 'settings'
-  }
-]
+export const navigationItems: NavigationItem[] = sharedModules.map((module) => ({
+  key: module.key,
+  group: module.group,
+  label: module.label,
+  path: module.path,
+  description: module.description,
+  icon: module.icon,
+  roles: module.roles as UserRole[] | undefined,
+  permissions: module.permissions as Permission[] | undefined
+}))
 
 export interface BreadcrumbItem {
   label: string
   path?: string
 }
 
-function toTitleCase(value: string) {
-  return value
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase())
-}
-
 export function findNavigationItem(pathname: string) {
-  return navigationItems.find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`))
+  const sharedModule = findSharedModule(pathname)
+  return sharedModule ? navigationItems.find((item) => item.key === sharedModule.key) : undefined
 }
 
 export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
@@ -92,11 +34,11 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
   segments.forEach((segment, index) => {
     currentPath += `/${segment}`
-    const navigationItem = navigationItems.find((item) => item.path === currentPath)
+    const navigationItem = findNavigationItem(currentPath)
     const isLast = index === segments.length - 1
 
     breadcrumbs.push({
-      label: navigationItem?.label || toTitleCase(segment),
+      label: navigationItem?.label || toRouteLabel(segment),
       path: isLast ? undefined : currentPath
     })
   })
