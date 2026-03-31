@@ -2,12 +2,17 @@ import type {
   AnomalyDetectionDto,
   AssetDto,
   DemandForecastDto,
+  FixedAssetComplianceReportDto,
+  FixedAssetDto,
   InventoryDashboardDto,
   InventoryItemDto,
   MaintenanceForecastDto,
   ProcurementDashboardDto,
   PurchaseOrderDto,
   ReorderRecommendationDto,
+  ShipmentDto,
+  StockTransferDto,
+  WarehouseDto,
   WorkOrderDto
 } from '../types'
 import { requestGet, requestPost } from './apiClient'
@@ -45,6 +50,58 @@ export interface WorkOrderCreatePayload {
 export interface WorkOrderStatusPayload {
   status: string
   producedQuantity?: number
+}
+
+export interface StockTransferCreatePayload {
+  fromWarehouseCode: string
+  toWarehouseCode: string
+  productId: string
+  quantity: number
+  reason: string
+}
+
+export interface ShipmentCreatePayload {
+  direction: string
+  carrier: string
+  trackingNumber: string
+  originWarehouseCode: string
+  destinationName: string
+  salesOrderId?: string
+  purchaseOrderId?: string
+  scheduledShipDate: string
+}
+
+export interface ShipmentStatusPayload {
+  status: string
+}
+
+export interface FixedAssetCreatePayload {
+  operationalAssetId?: string
+  name: string
+  assetClass: string
+  companyCode: string
+  branchCode: string
+  acquisitionCost: number
+  salvageValue: number
+  depreciationMethod: string
+  usefulLifeMonths: number
+  depreciationRate: number
+  ownerDepartment: string
+  currentLocation: string
+}
+
+export interface FixedAssetTransferPayload {
+  branchCode: string
+  currentLocation: string
+  ownerDepartment: string
+}
+
+export interface FixedAssetRevaluationPayload {
+  revaluationAmount: number
+}
+
+export interface DepreciationRunPayload {
+  runDate: string
 }
 
 export const inventoryService = {
@@ -93,6 +150,48 @@ export const inventoryService = {
     return requestGet<MaintenanceForecastDto[]>('inventory', '/api/inventory/maintenance-forecast', {
       params: { horizonDays }
     })
+  },
+  getWarehouses() {
+    return requestGet<WarehouseDto[]>('inventory', '/api/inventory/supply-chain/warehouses')
+  },
+  getStockTransfers(status?: string) {
+    return requestGet<StockTransferDto[]>('inventory', '/api/inventory/supply-chain/transfers', {
+      params: { status: status || undefined }
+    })
+  },
+  createStockTransfer(payload: StockTransferCreatePayload) {
+    return requestPost<StockTransferDto, StockTransferCreatePayload>('inventory', '/api/inventory/supply-chain/transfers', payload)
+  },
+  getShipments(status?: string) {
+    return requestGet<ShipmentDto[]>('inventory', '/api/inventory/supply-chain/shipments', {
+      params: { status: status || undefined }
+    })
+  },
+  createShipment(payload: ShipmentCreatePayload) {
+    return requestPost<ShipmentDto, ShipmentCreatePayload>('inventory', '/api/inventory/supply-chain/shipments', payload)
+  },
+  updateShipmentStatus(id: string, payload: ShipmentStatusPayload) {
+    return requestPost<ShipmentDto, ShipmentStatusPayload>('inventory', `/api/inventory/supply-chain/shipments/${id}/status`, payload)
+  },
+  getFixedAssets(status?: string) {
+    return requestGet<FixedAssetDto[]>('inventory', '/api/inventory/fixed-assets', {
+      params: { status: status || undefined }
+    })
+  },
+  createFixedAsset(payload: FixedAssetCreatePayload) {
+    return requestPost<FixedAssetDto, FixedAssetCreatePayload>('inventory', '/api/inventory/fixed-assets', payload)
+  },
+  transferFixedAsset(id: string, payload: FixedAssetTransferPayload) {
+    return requestPost<FixedAssetDto, FixedAssetTransferPayload>('inventory', `/api/inventory/fixed-assets/${id}/transfer`, payload)
+  },
+  revalueFixedAsset(id: string, payload: FixedAssetRevaluationPayload) {
+    return requestPost<FixedAssetDto, FixedAssetRevaluationPayload>('inventory', `/api/inventory/fixed-assets/${id}/revalue`, payload)
+  },
+  runDepreciation(payload: DepreciationRunPayload) {
+    return requestPost<FixedAssetComplianceReportDto, DepreciationRunPayload>('inventory', '/api/inventory/fixed-assets/depreciation/run', payload)
+  },
+  getFixedAssetComplianceReport() {
+    return requestGet<FixedAssetComplianceReportDto>('inventory', '/api/inventory/fixed-assets/compliance-report')
   },
   getWorkOrders(status?: string) {
     return requestGet<WorkOrderDto[]>('inventory', '/api/inventory/manufacturing/work-orders', {

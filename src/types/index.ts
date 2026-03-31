@@ -289,6 +289,104 @@ export interface WorkOrderDto {
   producedQuantity: number
 }
 
+export interface CompanyDto {
+  id: string
+  companyCode: string
+  name: string
+  baseCurrency: string
+  taxRegistrationNumber: string
+}
+
+export interface BranchDto {
+  id: string
+  branchCode: string
+  companyCode: string
+  name: string
+  city: string
+  timeZone: string
+}
+
+export interface WarehouseStockDto {
+  productId: string
+  productName: string
+  quantityOnHand: number
+  quantityReserved: number
+  defaultBin: string | null
+  batchNumber: string | null
+  serialNumber: string | null
+}
+
+export interface WarehouseDto {
+  id: string
+  warehouseCode: string
+  name: string
+  branchCode: string
+  type: string
+  isPrimary: boolean
+  stock: WarehouseStockDto[]
+}
+
+export interface StockTransferDto {
+  id: string
+  transferNumber: string
+  fromWarehouseCode: string
+  toWarehouseCode: string
+  productId: string
+  productName: string
+  quantity: number
+  status: string
+  requestedAt: string
+  completedAt: string | null
+  reason: string
+}
+
+export interface ShipmentDto {
+  id: string
+  shipmentNumber: string
+  direction: string
+  status: string
+  carrier: string
+  trackingNumber: string
+  originWarehouseCode: string
+  destinationName: string
+  salesOrderId: string | null
+  purchaseOrderId: string | null
+  scheduledShipDate: string
+  deliveredAt: string | null
+}
+
+export interface FixedAssetDto {
+  id: string
+  assetNumber: string
+  name: string
+  assetClass: string
+  status: string
+  companyCode: string
+  branchCode: string
+  capitalizedOn: string
+  acquisitionCost: number
+  salvageValue: number
+  residualValue: number
+  accumulatedDepreciation: number
+  depreciationMethod: string
+  usefulLifeMonths: number
+  depreciationRate: number
+  revaluationAmount: number
+  ownerDepartment: string
+  currentLocation: string
+  lastDepreciatedOn: string
+  operationalAssetId: string | null
+}
+
+export interface FixedAssetComplianceReportDto {
+  totalAssets: number
+  grossBookValue: number
+  netBookValue: number
+  accumulatedDepreciation: number
+  assetsPendingDepreciation: number
+  complianceWarnings: string[]
+}
+
 export interface CustomerDto {
   id: string
   name: string
@@ -369,6 +467,21 @@ export interface ServiceTicketDto {
   assignedTeam: string
 }
 
+export interface FieldServiceJobDto {
+  id: string
+  jobNumber: string
+  serviceTicketId: string | null
+  customerName: string
+  technicianName: string
+  status: string
+  scheduledStart: string
+  scheduledEnd: string
+  offlineSyncEnabled: boolean
+  latitude: number
+  longitude: number
+  serviceReport: string
+}
+
 export interface AlertDto {
   severity: string
   area: string
@@ -406,6 +519,66 @@ export interface PayrollSummaryDto {
   nextPayrollDate: string
   pendingPayrollApprovals: number
   status: string
+}
+
+export interface PurchaseRequisitionLineDto {
+  productId: string
+  productName: string
+  quantity: number
+  estimatedUnitCost: number
+  estimatedLineTotal: number
+}
+
+export interface PurchaseRequisitionDto {
+  id: string
+  requisitionNumber: string
+  department: string
+  requestedBy: string
+  status: string
+  requestedAt: string
+  justification: string
+  lines: PurchaseRequisitionLineDto[]
+  estimatedTotal: number
+}
+
+export interface RfqSupplierQuoteDto {
+  supplierId: string
+  supplierName: string
+  quotedAmount: number
+  leadTimeDays: number
+  score: number
+  isAwarded: boolean
+}
+
+export interface RequestForQuoteDto {
+  id: string
+  rfqNumber: string
+  requisitionId: string | null
+  title: string
+  status: string
+  issuedAt: string
+  responseDueAt: string
+  supplierQuotes: RfqSupplierQuoteDto[]
+}
+
+export interface VendorComparisonDto {
+  rfqId: string
+  rfqNumber: string
+  recommendedSupplierName: string
+  recommendedQuote: number
+  recommendedLeadTimeDays: number
+  options: RfqSupplierQuoteDto[]
+}
+
+export interface ThreeWayMatchDto {
+  purchaseOrderId: string
+  purchaseOrderNumber: string
+  supplierName: string
+  purchaseOrderTotal: number
+  receivedValue: number
+  invoiceValue: number
+  matchStatus: string
+  variance: number
 }
 
 export interface ReportingSnapshotDto {
@@ -611,6 +784,75 @@ export interface AiReadinessDto {
   useBackgroundPredictions: boolean
   structuredBusinessEventsEnabled: boolean
   useCases: AiUseCaseDto[]
+}
+
+export interface BillOfMaterialLineDto {
+  componentProductId: string
+  componentName: string
+  quantity: number
+  unitOfMeasure: string
+}
+
+export interface ProductLifecycleDto {
+  id: string
+  productId: string
+  productName: string
+  version: string
+  lifecycleStage: string
+  releasedAt: string
+  billOfMaterials: BillOfMaterialLineDto[]
+}
+
+export interface ProductChangeDto {
+  id: string
+  changeNumber: string
+  productLifecycleId: string
+  productName: string
+  title: string
+  status: string
+  requestedBy: string
+  requestedAt: string
+  approvedAt: string | null
+  impactSummary: string
+}
+
+export interface IntegrationConnectionDto {
+  id: string
+  name: string
+  type: string
+  provider: string
+  status: string
+  endpointUrl: string
+  lastSyncAt: string
+  lastSyncResult: string
+  retryCount: number
+}
+
+export interface WebhookSubscriptionDto {
+  id: string
+  name: string
+  topic: string
+  targetUrl: string
+  secretReference: string
+  isActive: boolean
+  createdAt: string
+  lastDeliveredAt: string | null
+  lastDeliveryStatus: string
+}
+
+export interface IntegrationOverviewDto {
+  activeConnections: number
+  activeWebhooks: number
+  failedSyncs: number
+  supportedConnectors: string[]
+}
+
+export interface AccessControlSummaryDto {
+  tenantId: string
+  roles: UserRole[]
+  permissions: Permission[]
+  companies: CompanyDto[]
+  branches: BranchDto[]
 }
 
 export interface DashboardBundle {

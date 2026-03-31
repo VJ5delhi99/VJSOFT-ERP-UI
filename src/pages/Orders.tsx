@@ -9,6 +9,7 @@ import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
+import FieldServicePanel from '../components/enterprise/FieldServicePanel'
 import { roleGroups } from '../config/rbac'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
@@ -110,7 +111,7 @@ export default function Orders() {
   const { canAccess } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<'revenue' | 'delivery'>('revenue')
+  const [activeView, setActiveView] = useState<'revenue' | 'delivery' | 'field'>('revenue')
   const [customers, setCustomers] = useState<CustomerDto[]>([])
   const [products, setProducts] = useState<ProductDto[]>([])
   const [orders, setOrders] = useState<OrderDto[]>([])
@@ -365,7 +366,7 @@ export default function Orders() {
       <SegmentedControl
         label="Sales and delivery sections"
         value={activeView}
-        onChange={(value) => setActiveView(value as 'revenue' | 'delivery')}
+        onChange={(value) => setActiveView(value as 'revenue' | 'delivery' | 'field')}
         options={[
           {
             value: 'revenue',
@@ -376,98 +377,116 @@ export default function Orders() {
             value: 'delivery',
             label: 'Delivery operations',
             description: 'Projects and customer service work'
+          },
+          {
+            value: 'field',
+            label: 'Field service',
+            description: 'Technician dispatch, offline jobs, and service execution'
           }
         ]}
       />
 
-      {activeView === 'revenue' ? (canViewSales ? (
-        <>
-          <DataTable
-            title="Orders"
-            description="Review customer orders, current status, and order details."
-            columns={[
-              { key: 'orderNumber', title: 'Order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.orderNumber}</strong><span>{row.customerName}</span></div> },
-              { key: 'orderDate', title: 'Ordered', sortable: true, render: (row) => formatDate(row.orderDate) },
-              { key: 'totalAmount', title: 'Total', sortable: true, align: 'right', render: (row) => formatCurrency(row.totalAmount) },
-              { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={orderTone(row.status)} /> },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openOrderDetail(row.id)}>View details</button> }
-            ]}
-            data={orders}
-            rowKey="id"
-            searchKeys={['orderNumber', 'customerName', 'status']}
-            searchPlaceholder="Search orders"
-            toolbar={<select className="select" value={orderStatusFilter} onChange={(event) => setOrderStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Processing">Processing</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select>}
-            emptyTitle="No orders found"
-            emptyDescription="Try a different filter or come back after new orders are created."
-          />
+      {activeView === 'revenue' ? (
+        canViewSales ? (
+          <>
+            <DataTable
+              title="Orders"
+              description="Review customer orders, current status, and order details."
+              columns={[
+                { key: 'orderNumber', title: 'Order', sortable: true, render: (row) => <div className="table-primary"><strong>{row.orderNumber}</strong><span>{row.customerName}</span></div> },
+                { key: 'orderDate', title: 'Ordered', sortable: true, render: (row) => formatDate(row.orderDate) },
+                { key: 'totalAmount', title: 'Total', sortable: true, align: 'right', render: (row) => formatCurrency(row.totalAmount) },
+                { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={orderTone(row.status)} /> },
+                { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openOrderDetail(row.id)}>View details</button> }
+              ]}
+              data={orders}
+              rowKey="id"
+              searchKeys={['orderNumber', 'customerName', 'status']}
+              searchPlaceholder="Search orders"
+              toolbar={<select className="select" value={orderStatusFilter} onChange={(event) => setOrderStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Processing">Processing</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select>}
+              emptyTitle="No orders found"
+              emptyDescription="Try a different filter or come back after new orders are created."
+            />
 
-          <DataTable
-            title="Customers"
-            description="Review customers and open a quick summary for each account."
-            columns={[
-              { key: 'name', title: 'Customer', sortable: true, render: (row) => <div className="table-primary"><strong>{row.name}</strong><span>{row.email}</span></div> },
-              { key: 'segment', title: 'Segment', sortable: true, render: (row) => <StatusBadge label={row.segment} tone="info" /> },
-              { key: 'lifetimeValue', title: 'Lifetime value', sortable: true, align: 'right', render: (row) => formatCurrency(row.lifetimeValue) },
-              { key: 'outstandingBalance', title: 'Outstanding', sortable: true, align: 'right', render: (row) => formatCurrency(row.outstandingBalance) },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openCustomerIntelligence(row.id)}>View insights</button> }
-            ]}
-            data={customers}
-            rowKey="id"
-            searchKeys={['name', 'email', 'segment', 'contactNumber']}
-            searchPlaceholder="Search customers"
-            toolbar={<select className="select" value={customerSegmentFilter} onChange={(event) => setCustomerSegmentFilter(event.target.value)}><option value="">All segments</option><option value="SMB">SMB</option><option value="Enterprise">Enterprise</option><option value="Strategic">Strategic</option></select>}
-            emptyTitle="No customers found"
-            emptyDescription="Try a different segment or add a new customer."
-          />
-        </>
-      ) : (
-        <EmptyState title="Sales area unavailable" description="This account does not currently have access to sales information." compact />
-      )) : canViewOperations ? (
+            <DataTable
+              title="Customers"
+              description="Review customers and open a quick summary for each account."
+              columns={[
+                { key: 'name', title: 'Customer', sortable: true, render: (row) => <div className="table-primary"><strong>{row.name}</strong><span>{row.email}</span></div> },
+                { key: 'segment', title: 'Segment', sortable: true, render: (row) => <StatusBadge label={row.segment} tone="info" /> },
+                { key: 'lifetimeValue', title: 'Lifetime value', sortable: true, align: 'right', render: (row) => formatCurrency(row.lifetimeValue) },
+                { key: 'outstandingBalance', title: 'Outstanding', sortable: true, align: 'right', render: (row) => formatCurrency(row.outstandingBalance) },
+                { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openCustomerIntelligence(row.id)}>View insights</button> }
+              ]}
+              data={customers}
+              rowKey="id"
+              searchKeys={['name', 'email', 'segment', 'contactNumber']}
+              searchPlaceholder="Search customers"
+              toolbar={<select className="select" value={customerSegmentFilter} onChange={(event) => setCustomerSegmentFilter(event.target.value)}><option value="">All segments</option><option value="SMB">SMB</option><option value="Enterprise">Enterprise</option><option value="Strategic">Strategic</option></select>}
+              emptyTitle="No customers found"
+              emptyDescription="Try a different segment or add a new customer."
+            />
+          </>
+        ) : (
+          <EmptyState title="Sales area unavailable" description="This account does not currently have access to sales information." compact />
+        )
+      ) : null}
 
-        <section className="dashboard-grid dashboard-grid--balanced">
-          <DataTable
-            title="Projects"
-            description="Track project progress, customer commitments, and current status."
-            columns={[
-              { key: 'projectCode', title: 'Project', sortable: true, render: (row) => <div className="table-primary"><strong>{row.projectCode}</strong><span>{row.name}</span></div> },
-              { key: 'customerName', title: 'Customer', sortable: true },
-              { key: 'budget', title: 'Budget', sortable: true, align: 'right', render: (row) => formatCurrency(row.budget) },
-              { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={projectTone(row.status)} /> },
-              { key: 'percentComplete', title: 'Complete', sortable: true, align: 'right', render: (row) => `${row.percentComplete}%` },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'project', record: row })}>Update status</button> }
-            ]}
-            data={projects}
-            rowKey="id"
-            searchKeys={['projectCode', 'name', 'customerName', 'projectManager', 'status']}
-            searchPlaceholder="Search projects"
-            toolbar={<select className="select" value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Planning">Planning</option><option value="Active">Active</option><option value="At Risk">At Risk</option><option value="Completed">Completed</option><option value="On Hold">On Hold</option></select>}
-            emptyTitle="No projects found"
-            emptyDescription="Try a different status filter or add a new project."
-          />
+      {activeView === 'delivery' ? (
+        canViewOperations ? (
+          <section className="dashboard-grid dashboard-grid--balanced">
+            <DataTable
+              title="Projects"
+              description="Track project progress, customer commitments, and current status."
+              columns={[
+                { key: 'projectCode', title: 'Project', sortable: true, render: (row) => <div className="table-primary"><strong>{row.projectCode}</strong><span>{row.name}</span></div> },
+                { key: 'customerName', title: 'Customer', sortable: true },
+                { key: 'budget', title: 'Budget', sortable: true, align: 'right', render: (row) => formatCurrency(row.budget) },
+                { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={projectTone(row.status)} /> },
+                { key: 'percentComplete', title: 'Complete', sortable: true, align: 'right', render: (row) => `${row.percentComplete}%` },
+                { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'project', record: row })}>Update status</button> }
+              ]}
+              data={projects}
+              rowKey="id"
+              searchKeys={['projectCode', 'name', 'customerName', 'projectManager', 'status']}
+              searchPlaceholder="Search projects"
+              toolbar={<select className="select" value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}><option value="">All statuses</option><option value="Planning">Planning</option><option value="Active">Active</option><option value="At Risk">At Risk</option><option value="Completed">Completed</option><option value="On Hold">On Hold</option></select>}
+              emptyTitle="No projects found"
+              emptyDescription="Try a different status filter or add a new project."
+            />
 
-          <DataTable
-            title="Support cases"
-            description="Review support work, priorities, due dates, and progress."
-            columns={[
-              { key: 'ticketNumber', title: 'Case', sortable: true, render: (row) => <div className="table-primary"><strong>{row.ticketNumber}</strong><span>{row.subject}</span></div> },
-              { key: 'customerName', title: 'Customer', sortable: true },
-              { key: 'priority', title: 'Priority', sortable: true, render: (row) => <StatusBadge label={row.priority} tone={priorityTone(row.priority)} /> },
-              { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={ticketTone(row.status)} /> },
-              { key: 'dueAt', title: 'Due', sortable: true, render: (row) => formatDateTime(row.dueAt) },
-              { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'ticket', record: row })}>Update status</button> }
-            ]}
-            data={tickets}
-            rowKey="id"
-            searchKeys={['ticketNumber', 'customerName', 'subject', 'assignedTeam', 'status']}
-            searchPlaceholder="Search tickets"
-            toolbar={<select className="select" value={ticketStatusFilter} onChange={(event) => setTicketStatusFilter(event.target.value)}><option value="">All statuses</option><option value="New">New</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option><option value="Escalated">Escalated</option></select>}
-            emptyTitle="No support cases found"
-            emptyDescription="Try a different filter or add a new case."
-          />
-        </section>
-      ) : (
-        <EmptyState title="Operations area unavailable" description="This account does not currently have access to project or support information." compact />
-      )}
+            <DataTable
+              title="Support cases"
+              description="Review support work, priorities, due dates, and progress."
+              columns={[
+                { key: 'ticketNumber', title: 'Case', sortable: true, render: (row) => <div className="table-primary"><strong>{row.ticketNumber}</strong><span>{row.subject}</span></div> },
+                { key: 'customerName', title: 'Customer', sortable: true },
+                { key: 'priority', title: 'Priority', sortable: true, render: (row) => <StatusBadge label={row.priority} tone={priorityTone(row.priority)} /> },
+                { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={ticketTone(row.status)} /> },
+                { key: 'dueAt', title: 'Due', sortable: true, render: (row) => formatDateTime(row.dueAt) },
+                { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWorkflowModal({ kind: 'ticket', record: row })}>Update status</button> }
+              ]}
+              data={tickets}
+              rowKey="id"
+              searchKeys={['ticketNumber', 'customerName', 'subject', 'assignedTeam', 'status']}
+              searchPlaceholder="Search tickets"
+              toolbar={<select className="select" value={ticketStatusFilter} onChange={(event) => setTicketStatusFilter(event.target.value)}><option value="">All statuses</option><option value="New">New</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option><option value="Escalated">Escalated</option></select>}
+              emptyTitle="No support cases found"
+              emptyDescription="Try a different filter or add a new case."
+            />
+          </section>
+        ) : (
+          <EmptyState title="Operations area unavailable" description="This account does not currently have access to project or support information." compact />
+        )
+      ) : null}
+
+      {activeView === 'field' ? (
+        canViewOperations ? (
+          <FieldServicePanel tickets={tickets} />
+        ) : (
+          <EmptyState title="Field service unavailable" description="This account does not currently have access to field-service workflows." compact />
+        )
+      ) : null}
 
       <Modal
         open={customerModalOpen}

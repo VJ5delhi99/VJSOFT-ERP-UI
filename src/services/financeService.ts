@@ -9,10 +9,17 @@ import type {
   FinanceDashboardDto,
   InvoiceAgingReportDto,
   InvoiceDto,
+  IntegrationConnectionDto,
+  IntegrationOverviewDto,
   NaturalLanguageQueryResultDto,
   PaymentDto,
   PayrollSummaryDto,
-  ReportingSnapshotDto
+  PurchaseRequisitionDto,
+  RequestForQuoteDto,
+  ReportingSnapshotDto,
+  ThreeWayMatchDto,
+  VendorComparisonDto,
+  WebhookSubscriptionDto
 } from '../types'
 import { requestGet, requestPost } from './apiClient'
 
@@ -32,6 +39,42 @@ export interface DocumentExtractionPayload {
   content: string
 }
 
+export interface PurchaseRequisitionCreatePayload {
+  department: string
+  requestedBy: string
+  justification: string
+  lines: Array<{ productId: string; quantity: number; estimatedUnitCost: number }>
+}
+
+export interface PurchaseRequisitionApprovalPayload {
+  status: string
+}
+
+export interface RequestForQuoteCreatePayload {
+  requisitionId?: string
+  title: string
+  responseWindowDays: number
+  supplierQuotes: Array<{ supplierId: string; quotedAmount: number; leadTimeDays: number }>
+}
+
+export interface IntegrationConnectionCreatePayload {
+  name: string
+  type: string
+  provider: string
+  endpointUrl: string
+}
+
+export interface WebhookSubscriptionCreatePayload {
+  name: string
+  topic: string
+  targetUrl: string
+  secretReference: string
+}
+
+export interface WebhookDeliveryPayload {
+  deliveryStatus: string
+}
+
 export const financeService = {
   getBillingDashboard() {
     return requestGet<BillingDashboardDto>('billing', '/api/billing/dashboard')
@@ -49,6 +92,49 @@ export const financeService = {
   },
   getPayrollSummary() {
     return requestGet<PayrollSummaryDto>('billing', '/api/finance/payroll')
+  },
+  getPurchaseRequisitions(status?: string) {
+    return requestGet<PurchaseRequisitionDto[]>('billing', '/api/procurement/requisitions', {
+      params: { status: status || undefined }
+    })
+  },
+  createPurchaseRequisition(payload: PurchaseRequisitionCreatePayload) {
+    return requestPost<PurchaseRequisitionDto, PurchaseRequisitionCreatePayload>('billing', '/api/procurement/requisitions', payload)
+  },
+  updatePurchaseRequisitionStatus(id: string, payload: PurchaseRequisitionApprovalPayload) {
+    return requestPost<PurchaseRequisitionDto, PurchaseRequisitionApprovalPayload>('billing', `/api/procurement/requisitions/${id}/status`, payload)
+  },
+  getRequestForQuotes(status?: string) {
+    return requestGet<RequestForQuoteDto[]>('billing', '/api/procurement/rfqs', {
+      params: { status: status || undefined }
+    })
+  },
+  createRequestForQuote(payload: RequestForQuoteCreatePayload) {
+    return requestPost<RequestForQuoteDto, RequestForQuoteCreatePayload>('billing', '/api/procurement/rfqs', payload)
+  },
+  getVendorComparison(id: string) {
+    return requestGet<VendorComparisonDto>('billing', `/api/procurement/rfqs/${id}/comparison`)
+  },
+  getThreeWayMatches() {
+    return requestGet<ThreeWayMatchDto[]>('billing', '/api/procurement/three-way-match')
+  },
+  getIntegrationOverview() {
+    return requestGet<IntegrationOverviewDto>('billing', '/api/integration/overview')
+  },
+  getIntegrationConnections() {
+    return requestGet<IntegrationConnectionDto[]>('billing', '/api/integration/connections')
+  },
+  createIntegrationConnection(payload: IntegrationConnectionCreatePayload) {
+    return requestPost<IntegrationConnectionDto, IntegrationConnectionCreatePayload>('billing', '/api/integration/connections', payload)
+  },
+  getWebhookSubscriptions() {
+    return requestGet<WebhookSubscriptionDto[]>('billing', '/api/integration/webhooks')
+  },
+  createWebhookSubscription(payload: WebhookSubscriptionCreatePayload) {
+    return requestPost<WebhookSubscriptionDto, WebhookSubscriptionCreatePayload>('billing', '/api/integration/webhooks', payload)
+  },
+  recordWebhookDelivery(id: string, payload: WebhookDeliveryPayload) {
+    return requestPost<WebhookSubscriptionDto, WebhookDeliveryPayload>('billing', `/api/integration/webhooks/${id}/deliveries`, payload)
   },
   getReportingSnapshot() {
     return requestGet<ReportingSnapshotDto>('billing', '/api/reporting/snapshot')

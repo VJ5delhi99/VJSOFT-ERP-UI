@@ -11,6 +11,7 @@ import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
+import SupplyChainEnterprisePanel from '../components/enterprise/SupplyChainEnterprisePanel'
 import { roleGroups } from '../config/rbac'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
@@ -117,7 +118,7 @@ export default function Products() {
   const { canAccess, user } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<'catalog' | 'inventory' | 'operations'>('catalog')
+  const [activeView, setActiveView] = useState<'catalog' | 'inventory' | 'operations' | 'enterprise'>('catalog')
   const [catalogOverview, setCatalogOverview] = useState<Awaited<ReturnType<typeof catalogService.getOverview>> | null>(null)
   const [inventoryDashboard, setInventoryDashboard] = useState<InventoryDashboardDto | null>(null)
   const [categories, setCategories] = useState<CategorySummaryDto[]>([])
@@ -503,11 +504,12 @@ export default function Products() {
       <SegmentedControl
         label="Supply chain work areas"
         value={activeView}
-        onChange={(value) => setActiveView(value as 'catalog' | 'inventory' | 'operations')}
+        onChange={(value) => setActiveView(value as 'catalog' | 'inventory' | 'operations' | 'enterprise')}
         options={[
           { value: 'catalog', label: 'Catalog', description: 'Products, categories, and suppliers' },
           { value: 'inventory', label: 'Inventory', description: 'Stock, purchasing, and replenishment' },
-          { value: 'operations', label: 'Operations', description: 'Assets, maintenance, and work orders' }
+          { value: 'operations', label: 'Operations', description: 'Assets, maintenance, and work orders' },
+          { value: 'enterprise', label: 'Enterprise', description: 'Warehouses, fixed assets, logistics, and PLM' }
         ]}
       />
 
@@ -740,6 +742,12 @@ export default function Products() {
         </section>
       ) : (
         <EmptyState title="Operations unavailable" description="This account does not currently have access to asset or work-order information." compact />
+      )) : null}
+
+      {activeView === 'enterprise' ? (canViewInventory ? (
+        <SupplyChainEnterprisePanel products={products} />
+      ) : (
+        <EmptyState title="Enterprise supply chain unavailable" description="This account does not currently have access to enterprise supply and asset workflows." compact />
       )) : null}
 
       <Modal

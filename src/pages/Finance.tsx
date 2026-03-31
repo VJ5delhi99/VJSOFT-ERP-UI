@@ -10,8 +10,10 @@ import SegmentedControl from '../components/SegmentedControl'
 import Spinner from '../components/Spinner'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
+import FinanceEnterprisePanel from '../components/enterprise/FinanceEnterprisePanel'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
+import { catalogService } from '../services/catalogService'
 import { financeService } from '../services/financeService'
 import type {
   AlertDto,
@@ -20,7 +22,9 @@ import type {
   InvoiceAgingReportDto,
   InvoiceDto,
   PaymentDto,
-  PayrollSummaryDto
+  PayrollSummaryDto,
+  ProductDto,
+  SupplierDto
 } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
@@ -39,6 +43,8 @@ interface FinanceState {
   alerts: AlertDto[]
   anomalies: AnomalyDetectionDto[]
   payroll: PayrollSummaryDto | null
+  products: ProductDto[]
+  suppliers: SupplierDto[]
 }
 
 const initialState: FinanceState = {
@@ -48,7 +54,9 @@ const initialState: FinanceState = {
   aging: null,
   alerts: [],
   anomalies: [],
-  payroll: null
+  payroll: null,
+  products: [],
+  suppliers: []
 }
 
 function invoiceTone(status: string) {
@@ -81,7 +89,7 @@ export default function Finance() {
   const { hasPermission } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<'receivables' | 'cash' | 'payroll'>('receivables')
+  const [activeView, setActiveView] = useState<'receivables' | 'cash' | 'payroll' | 'controls'>('receivables')
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [billingDashboard, setBillingDashboard] = useState<Awaited<ReturnType<typeof financeService.getBillingDashboard>> | null>(null)
   const [executiveDashboard, setExecutiveDashboard] = useState<Awaited<ReturnType<typeof financeService.getExecutiveDashboard>> | null>(null)
@@ -126,7 +134,9 @@ export default function Finance() {
       alertsResult,
       financeAnomaliesResult,
       paymentAnomaliesResult,
-      payrollResult
+      payrollResult,
+      productsResult,
+      suppliersResult
     ] = await Promise.allSettled([
       financeService.getBillingDashboard(),
       financeService.getExecutiveDashboard(),
@@ -141,7 +151,9 @@ export default function Finance() {
       financeService.getBillingAlerts(6),
       financeService.getFinanceAnomalies(6),
       financeService.getPaymentAnomalies(6),
-      canRunPayroll ? financeService.getPayrollSummary() : Promise.resolve(null)
+      canRunPayroll ? financeService.getPayrollSummary() : Promise.resolve(null),
+      catalogService.getProducts(undefined, false),
+      catalogService.getSuppliers()
     ])
 
     setBillingDashboard(billingDashboardResult.status === 'fulfilled' ? billingDashboardResult.value : null)
@@ -161,7 +173,9 @@ export default function Finance() {
         ...(financeAnomaliesResult.status === 'fulfilled' ? financeAnomaliesResult.value : []),
         ...(paymentAnomaliesResult.status === 'fulfilled' ? paymentAnomaliesResult.value : [])
       ].slice(0, 8),
-      payroll: payrollResult.status === 'fulfilled' ? payrollResult.value : null
+      payroll: payrollResult.status === 'fulfilled' ? payrollResult.value : null,
+      products: productsResult.status === 'fulfilled' ? productsResult.value : [],
+      suppliers: suppliersResult.status === 'fulfilled' ? suppliersResult.value : []
     })
     setLoading(false)
   }
@@ -257,11 +271,12 @@ export default function Finance() {
       <SegmentedControl
         label="Finance work areas"
         value={activeView}
-        onChange={(value) => setActiveView(value as 'receivables' | 'cash' | 'payroll')}
+        onChange={(value) => setActiveView(value as 'receivables' | 'cash' | 'payroll' | 'controls')}
         options={[
           { value: 'receivables', label: 'Receivables', description: 'Invoices, payments, and collections' },
           { value: 'cash', label: 'Cash outlook', description: 'Forecasts, aging, and finance alerts' },
-          { value: 'payroll', label: 'Payroll', description: 'Workforce payroll visibility' }
+          { value: 'payroll', label: 'Payroll', description: 'Workforce payroll visibility' },
+          { value: 'controls', label: 'Enterprise controls', description: 'Procurement and integration operations' }
         ]}
       />
 
@@ -426,6 +441,10 @@ export default function Finance() {
       ) : (
         <EmptyState title="Payroll visibility unavailable" description="Payroll details are available to accounts with payroll access." compact />
       )) : null}
+
+      {activeView === 'controls' ? (
+        <FinanceEnterprisePanel products={state.products} suppliers={state.suppliers} />
+      ) : null}
 
       {activeView === 'receivables' ? (
       <>

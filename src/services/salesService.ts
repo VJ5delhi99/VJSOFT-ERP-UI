@@ -1,4 +1,17 @@
-import type { CustomerDto, CustomerIntelligenceDto, OrderDto, OrderMetricsDto, ProjectDto, ServiceTicketDto } from '../types'
+import type {
+  AccessControlSummaryDto,
+  BranchDto,
+  CompanyDto,
+  CustomerDto,
+  CustomerIntelligenceDto,
+  FieldServiceJobDto,
+  OrderDto,
+  OrderMetricsDto,
+  ProductChangeDto,
+  ProductLifecycleDto,
+  ProjectDto,
+  ServiceTicketDto
+} from '../types'
 import { requestGet, requestPost } from './apiClient'
 
 export interface CustomerUpsertPayload {
@@ -41,6 +54,40 @@ export interface ServiceTicketCreatePayload {
 }
 
 export interface TicketStatusPayload {
+  status: string
+}
+
+export interface FieldServiceJobCreatePayload {
+  serviceTicketId?: string
+  customerName?: string
+  technicianName: string
+  scheduledStart: string
+  scheduledEnd: string
+  offlineSyncEnabled: boolean
+  latitude: number
+  longitude: number
+}
+
+export interface FieldServiceJobUpdatePayload {
+  status: string
+  serviceReport: string
+}
+
+export interface ProductLifecycleCreatePayload {
+  productId: string
+  version: string
+  lifecycleStage: string
+  billOfMaterials: Array<{ componentProductId: string; quantity: number; unitOfMeasure: string }>
+}
+
+export interface ProductChangeCreatePayload {
+  productLifecycleId: string
+  title: string
+  requestedBy: string
+  impactSummary: string
+}
+
+export interface ProductChangeStatusPayload {
   status: string
 }
 
@@ -97,5 +144,44 @@ export const salesService = {
   },
   updateTicketStatus(id: string, payload: TicketStatusPayload) {
     return requestPost<ServiceTicketDto, TicketStatusPayload>('sales', `/api/service-desk/tickets/${id}/status`, payload)
+  },
+  getFieldServiceJobs(status?: string) {
+    return requestGet<FieldServiceJobDto[]>('sales', '/api/field-service/jobs', {
+      params: { status: status || undefined }
+    })
+  },
+  createFieldServiceJob(payload: FieldServiceJobCreatePayload) {
+    return requestPost<FieldServiceJobDto, FieldServiceJobCreatePayload>('sales', '/api/field-service/jobs', payload)
+  },
+  updateFieldServiceJob(id: string, payload: FieldServiceJobUpdatePayload) {
+    return requestPost<FieldServiceJobDto, FieldServiceJobUpdatePayload>('sales', `/api/field-service/jobs/${id}/status`, payload)
+  },
+  getProductLifecycles(productId?: string) {
+    return requestGet<ProductLifecycleDto[]>('sales', '/api/plm/lifecycles', {
+      params: { productId: productId || undefined }
+    })
+  },
+  createProductLifecycle(payload: ProductLifecycleCreatePayload) {
+    return requestPost<ProductLifecycleDto, ProductLifecycleCreatePayload>('sales', '/api/plm/lifecycles', payload)
+  },
+  getProductChanges(status?: string) {
+    return requestGet<ProductChangeDto[]>('sales', '/api/plm/changes', {
+      params: { status: status || undefined }
+    })
+  },
+  createProductChange(payload: ProductChangeCreatePayload) {
+    return requestPost<ProductChangeDto, ProductChangeCreatePayload>('sales', '/api/plm/changes', payload)
+  },
+  updateProductChangeStatus(id: string, payload: ProductChangeStatusPayload) {
+    return requestPost<ProductChangeDto, ProductChangeStatusPayload>('sales', `/api/plm/changes/${id}/status`, payload)
+  },
+  getAccessControlSummary() {
+    return requestGet<AccessControlSummaryDto>('sales', '/api/access-control/summary')
+  },
+  getCompanies() {
+    return requestGet<CompanyDto[]>('sales', '/api/access-control/companies')
+  },
+  getBranches() {
+    return requestGet<BranchDto[]>('sales', '/api/access-control/branches')
   }
 }

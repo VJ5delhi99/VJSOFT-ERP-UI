@@ -578,6 +578,92 @@ strong {
   max-width: 72ch;
 }
 
+.enterprise-hero {
+  padding: 24px 26px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(219, 228, 241, 0.96);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.96));
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.enterprise-hero__copy,
+.enterprise-hero__actions,
+.enterprise-summary__grid,
+.tag-cloud {
+  display: flex;
+}
+
+.enterprise-hero__copy {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 70ch;
+}
+
+.enterprise-hero__copy p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.enterprise-hero__actions {
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.enterprise-summary {
+  display: grid;
+  gap: 18px;
+}
+
+.enterprise-summary__grid {
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.enterprise-summary__metric {
+  min-width: 170px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  border: 1px solid rgba(219, 228, 241, 0.94);
+  display: grid;
+  gap: 6px;
+}
+
+.enterprise-summary__metric span {
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.enterprise-summary__metric strong {
+  font-size: 1.2rem;
+}
+
+.tag-cloud {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+}
+
 .page-stack {
   display: grid;
   gap: var(--space-3);
@@ -1595,6 +1681,7 @@ strong {
   .page-header,
   .topbar,
   .demo-banner,
+  .enterprise-hero,
   .assistant-card__composer,
   .table-card__header,
   .table-card__footer,
