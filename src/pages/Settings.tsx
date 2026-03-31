@@ -10,7 +10,8 @@ import { apiConfig } from '../config/api'
 import { useAuth } from '../hooks/useAuth'
 import { operationsService } from '../services/operationsService'
 import { platformService } from '../services/platformService'
-import type { AiReadinessDto, PlatformContextDto, ServiceHealthDto } from '../types'
+import { salesService } from '../services/salesService'
+import type { AccessControlSummaryDto, AiReadinessDto, IndustryProfileDto, PlatformContextDto, ServiceHealthDto, WorkflowTemplateDto } from '../types'
 import { formatDateTime } from '../utils/format'
 
 export default function Settings() {
@@ -19,6 +20,10 @@ export default function Settings() {
   const [context, setContext] = useState<PlatformContextDto | null>(null)
   const [aiReadiness, setAiReadiness] = useState<AiReadinessDto | null>(null)
   const [serviceHealth, setServiceHealth] = useState<ServiceHealthDto[]>([])
+  const [industryProfiles, setIndustryProfiles] = useState<IndustryProfileDto[]>([])
+  const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplateDto[]>([])
+  const [accessSummary, setAccessSummary] = useState<AccessControlSummaryDto | null>(null)
+  const [activatingIndustry, setActivatingIndustry] = useState<string | null>(null)
 
   const canManageUsers = canAccess(undefined, ['CanManageUsers'])
 
@@ -28,10 +33,13 @@ export default function Settings() {
     async function loadConfiguration() {
       setLoading(true)
 
-      const [contextResult, aiReadinessResult, healthResult] = await Promise.allSettled([
+      const [contextResult, aiReadinessResult, healthResult, profilesResult, workflowsResult, accessSummaryResult] = await Promise.allSettled([
         platformService.getContext(),
         canManageUsers ? platformService.getAiReadiness() : Promise.resolve(null),
-        canManageUsers ? operationsService.getServiceHealth() : Promise.resolve([])
+        canManageUsers ? operationsService.getServiceHealth() : Promise.resolve([]),
+        platformService.getIndustryProfiles(),
+        platformService.getWorkflowTemplates(),
+        salesService.getAccessControlSummary()
       ])
 
       if (!isMounted) {
@@ -41,6 +49,9 @@ export default function Settings() {
       setContext(contextResult.status === 'fulfilled' ? contextResult.value : null)
       setAiReadiness(aiReadinessResult.status === 'fulfilled' ? aiReadinessResult.value : null)
       setServiceHealth(healthResult.status === 'fulfilled' ? healthResult.value : [])
+      setIndustryProfiles(profilesResult.status === 'fulfilled' ? profilesResult.value : [])
+      setWorkflowTemplates(workflowsResult.status === 'fulfilled' ? workflowsResult.value : [])
+      setAccessSummary(accessSummaryResult.status === 'fulfilled' ? accessSummaryResult.value : null)
       setLoading(false)
     }
 
@@ -57,6 +68,26 @@ export default function Settings() {
   )
   const enabledAiUseCases = aiReadiness?.useCases.filter((item) => item.enabled).length ?? 0
   const organizationName = formatOrganizationName(context?.tenantId || user?.tenantId)
+  const activeIndustry = useMemo(
+    () => industryProfiles.find((profile) => profile.isActive) || null,
+    [industryProfiles]
+  )
+
+  async function activateIndustryProfile(industryCode: string) {
+    setActivatingIndustry(industryCode)
+
+    try {
+      const [profiles, workflows] = await Promise.all([
+        platformService.activateIndustryProfile(industryCode).then(() => platformService.getIndustryProfiles()),
+        platformService.getWorkflowTemplates(industryCode)
+      ])
+
+      setIndustryProfiles(profiles)
+      setWorkflowTemplates(workflows)
+    } finally {
+      setActivatingIndustry(null)
+    }
+  }
 
   if (loading) {
     return <Spinner fullPage label="Loading configuration" />
@@ -75,6 +106,71 @@ export default function Settings() {
         <StatCard label="Healthy integrations" value={activeIntegrations} format="number" subtitle="Services responding to health checks" />
         <StatCard label="Access roles" value={user?.roles.length ?? 0} format="number" subtitle="Roles assigned to this account" />
         <StatCard label="AI use cases" value={enabledAiUseCases} format="number" subtitle="Enabled AI capabilities" />
+      </section>
+
+      <section className="dashboard-grid dashboard-grid--balanced">
+        <article className="surface-card enterprise-summary">
+          <div className="section-heading">
+            <div>
+              <h3>Industry configuration</h3>
+              <p>Activate the operating profile that best matches your current business model and workflow defaults.</p>
+            </div>
+          </div>
+          {activeIndustry ? (
+            <>
+              <div className="stack-list">
+                <div className="list-row list-row--stacked">
+                  <div>
+                    <strong>{activeIndustry.name}</strong>
+                    <p>{activeIndustry.description}</p>
+                  </div>
+                  <StatusBadge label="Active profile" tone="success" />
+                </div>
+              </div>
+              <div className="tag-cloud">
+                {activeIndustry.enabledModules.map((module) => <span key={module} className="tag-chip">{module}</span>)}
+              </div>
+            </>
+          ) : (
+            <EmptyState title="No industry profile active" description="Activate an industry profile to align workflows and reporting focus." compact />
+          )}
+        </article>
+
+        <article className="surface-card">
+          <div className="section-heading">
+            <div>
+              <h3>Access coverage</h3>
+              <p>Current tenant roles, permissions, and organization structure.</p>
+            </div>
+          </div>
+          {accessSummary ? (
+            <div className="stack-list">
+              <div className="list-row">
+                <div>
+                  <strong>Roles</strong>
+                  <p>{accessSummary.roles.join(', ')}</p>
+                </div>
+                <span className="metric-inline">{accessSummary.roles.length}</span>
+              </div>
+              <div className="list-row">
+                <div>
+                  <strong>Permissions</strong>
+                  <p>{accessSummary.permissions.join(', ')}</p>
+                </div>
+                <span className="metric-inline">{accessSummary.permissions.length}</span>
+              </div>
+              <div className="list-row">
+                <div>
+                  <strong>Companies / branches</strong>
+                  <p>{accessSummary.companies.length} companies and {accessSummary.branches.length} branches are currently configured.</p>
+                </div>
+                <StatusBadge label="Tenant aware" tone="info" />
+              </div>
+            </div>
+          ) : (
+            <EmptyState title="Access summary unavailable" description="Access coverage details are not available right now." compact />
+          )}
+        </article>
       </section>
 
       <section className="dashboard-grid dashboard-grid--balanced">
@@ -203,6 +299,104 @@ export default function Settings() {
         searchPlaceholder="Search connected modules"
         emptyTitle="No connection details"
         emptyDescription="Connection details are not available right now."
+      />
+
+      <DataTable
+        title="Industry profiles"
+        description="Supported industry operating models and their activation state."
+        columns={[
+          {
+            key: 'name',
+            title: 'Industry',
+            sortable: true,
+            render: (row) => (
+              <div className="table-primary">
+                <strong>{row.name}</strong>
+                <span>{row.description}</span>
+              </div>
+            )
+          },
+          {
+            key: 'enabledModules',
+            title: 'Modules',
+            render: (row) => row.enabledModules.join(', ')
+          },
+          {
+            key: 'workflowTemplates',
+            title: 'Workflow packs',
+            render: (row) => row.workflowTemplates.join(', ')
+          },
+          {
+            key: 'isActive',
+            title: 'State',
+            sortable: true,
+            render: (row) => <StatusBadge label={row.isActive ? 'Active' : 'Available'} tone={row.isActive ? 'success' : 'info'} />
+          },
+          {
+            key: 'actions',
+            title: 'Actions',
+            render: (row) =>
+              row.isActive ? (
+                'In use'
+              ) : (
+                <button type="button" className="ghost-button" onClick={() => void activateIndustryProfile(row.industryCode)} disabled={activatingIndustry === row.industryCode}>
+                  {activatingIndustry === row.industryCode ? 'Activating...' : 'Activate'}
+                </button>
+              )
+          }
+        ]}
+        data={industryProfiles}
+        rowKey="industryCode"
+        searchKeys={['industryCode', 'name', 'description']}
+        searchPlaceholder="Search industry profiles"
+        emptyTitle="No industry profiles"
+        emptyDescription="Industry operating profiles are not available right now."
+      />
+
+      <DataTable
+        title="Workflow templates"
+        description="Default workflow stages and SLAs published by the active industry model."
+        columns={[
+          {
+            key: 'name',
+            title: 'Workflow',
+            sortable: true,
+            render: (row) => (
+              <div className="table-primary">
+                <strong>{row.name}</strong>
+                <span>{row.department}</span>
+              </div>
+            )
+          },
+          {
+            key: 'industryCode',
+            title: 'Industry',
+            sortable: true
+          },
+          {
+            key: 'stages',
+            title: 'Stages',
+            render: (row) => row.stages.join(' -> ')
+          },
+          {
+            key: 'slaHours',
+            title: 'SLA',
+            sortable: true,
+            render: (row) => `${row.slaHours}h`
+          },
+          {
+            key: 'isDefault',
+            title: 'Default',
+            sortable: true,
+            render: (row) => <StatusBadge label={row.isDefault ? 'Default' : 'Optional'} tone={row.isDefault ? 'success' : 'neutral'} />
+          }
+        ]}
+        data={workflowTemplates}
+        rowKey="id"
+        searchKeys={['templateCode', 'name', 'industryCode', 'department']}
+        searchPlaceholder="Search workflow templates"
+        emptyTitle="No workflow templates"
+        emptyDescription="Workflow definitions are not available right now."
       />
 
       <article className="surface-card">

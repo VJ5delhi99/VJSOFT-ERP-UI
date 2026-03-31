@@ -724,6 +724,28 @@ export interface PlatformOperationsSummaryDto {
   usesDurableDatabase: boolean
 }
 
+export interface IndustryProfileDto {
+  industryCode: string
+  name: string
+  description: string
+  enabledModules: string[]
+  workflowTemplates: string[]
+  reportingFocus: string[]
+  isActive: boolean
+}
+
+export interface WorkflowTemplateDto {
+  id: string
+  templateCode: string
+  name: string
+  industryCode: string
+  department: string
+  slaHours: number
+  isDefault: boolean
+  stages: string[]
+  triggers: string[]
+}
+
 export interface DemoStatusDto {
   isEnabled: boolean
   isDemoTenant: boolean

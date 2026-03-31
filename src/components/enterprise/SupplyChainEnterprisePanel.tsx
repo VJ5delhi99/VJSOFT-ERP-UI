@@ -71,6 +71,24 @@ interface ChangeFormValues {
   impactSummary: string
 }
 
+interface ShipmentStatusFormValues {
+  status: string
+}
+
+interface FixedAssetTransferFormValues {
+  branchCode: string
+  currentLocation: string
+  ownerDepartment: string
+}
+
+interface FixedAssetRevalueFormValues {
+  revaluationAmount: number
+}
+
+interface ChangeStatusFormValues {
+  status: string
+}
+
 function toneFromStatus(status: string) {
   switch (status.toLowerCase()) {
     case 'completed':
@@ -113,6 +131,13 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
   const [fixedAssetOpen, setFixedAssetOpen] = useState(false)
   const [lifecycleOpen, setLifecycleOpen] = useState(false)
   const [changeOpen, setChangeOpen] = useState(false)
+  const [shipmentStatusOpen, setShipmentStatusOpen] = useState(false)
+  const [assetTransferOpen, setAssetTransferOpen] = useState(false)
+  const [assetRevalueOpen, setAssetRevalueOpen] = useState(false)
+  const [changeStatusOpen, setChangeStatusOpen] = useState(false)
+  const [selectedShipment, setSelectedShipment] = useState<ShipmentDto | null>(null)
+  const [selectedFixedAsset, setSelectedFixedAsset] = useState<FixedAssetDto | null>(null)
+  const [selectedChange, setSelectedChange] = useState<ProductChangeDto | null>(null)
 
   const transferForm = useForm<TransferFormValues>({ defaultValues: { fromWarehouseCode: '', toWarehouseCode: '', productId: '', quantity: 1, reason: '' } })
   const shipmentForm = useForm<ShipmentFormValues>({ defaultValues: { direction: 'Outbound', carrier: '', trackingNumber: '', originWarehouseCode: '', destinationName: '', scheduledShipDate: '' } })
@@ -133,6 +158,10 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
   })
   const lifecycleForm = useForm<LifecycleFormValues>({ defaultValues: { productId: '', version: '', lifecycleStage: 'Released', componentProductId: '', quantity: 1, unitOfMeasure: 'EA' } })
   const changeForm = useForm<ChangeFormValues>({ defaultValues: { productLifecycleId: '', title: '', requestedBy: '', impactSummary: '' } })
+  const shipmentStatusForm = useForm<ShipmentStatusFormValues>({ defaultValues: { status: 'Scheduled' } })
+  const fixedAssetTransferForm = useForm<FixedAssetTransferFormValues>({ defaultValues: { branchCode: '', currentLocation: '', ownerDepartment: '' } })
+  const fixedAssetRevalueForm = useForm<FixedAssetRevalueFormValues>({ defaultValues: { revaluationAmount: 0 } })
+  const changeStatusForm = useForm<ChangeStatusFormValues>({ defaultValues: { status: 'Approved' } })
 
   async function loadEnterprise() {
     setLoading(true)
@@ -256,6 +285,80 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
     await loadEnterprise()
   }
 
+  function openShipmentStatusModal(shipment: ShipmentDto) {
+    setSelectedShipment(shipment)
+    shipmentStatusForm.reset({ status: shipment.status })
+    setShipmentStatusOpen(true)
+  }
+
+  function openFixedAssetTransferModal(asset: FixedAssetDto) {
+    setSelectedFixedAsset(asset)
+    fixedAssetTransferForm.reset({
+      branchCode: asset.branchCode,
+      currentLocation: asset.currentLocation,
+      ownerDepartment: asset.ownerDepartment
+    })
+    setAssetTransferOpen(true)
+  }
+
+  function openFixedAssetRevalueModal(asset: FixedAssetDto) {
+    setSelectedFixedAsset(asset)
+    fixedAssetRevalueForm.reset({ revaluationAmount: 0 })
+    setAssetRevalueOpen(true)
+  }
+
+  function openChangeStatusModal(change: ProductChangeDto) {
+    setSelectedChange(change)
+    changeStatusForm.reset({ status: change.status })
+    setChangeStatusOpen(true)
+  }
+
+  async function submitShipmentStatus(values: ShipmentStatusFormValues) {
+    if (!selectedShipment) {
+      return
+    }
+
+    await inventoryService.updateShipmentStatus(selectedShipment.id, values)
+    showToast('Shipment updated', `${selectedShipment.shipmentNumber} is now ${values.status}.`, 'success')
+    setShipmentStatusOpen(false)
+    await loadEnterprise()
+  }
+
+  async function submitFixedAssetTransfer(values: FixedAssetTransferFormValues) {
+    if (!selectedFixedAsset) {
+      return
+    }
+
+    await inventoryService.transferFixedAsset(selectedFixedAsset.id, values)
+    showToast('Fixed asset transferred', `${selectedFixedAsset.assetNumber} ownership has been updated.`, 'success')
+    setAssetTransferOpen(false)
+    await loadEnterprise()
+  }
+
+  async function submitFixedAssetRevalue(values: FixedAssetRevalueFormValues) {
+    if (!selectedFixedAsset) {
+      return
+    }
+
+    await inventoryService.revalueFixedAsset(selectedFixedAsset.id, {
+      revaluationAmount: Number(values.revaluationAmount)
+    })
+    showToast('Fixed asset revalued', `${selectedFixedAsset.assetNumber} book value has been updated.`, 'success')
+    setAssetRevalueOpen(false)
+    await loadEnterprise()
+  }
+
+  async function submitChangeStatus(values: ChangeStatusFormValues) {
+    if (!selectedChange) {
+      return
+    }
+
+    await salesService.updateProductChangeStatus(selectedChange.id, values)
+    showToast('Engineering change updated', `${selectedChange.changeNumber} is now ${values.status}.`, 'success')
+    setChangeStatusOpen(false)
+    await loadEnterprise()
+  }
+
   if (loading) {
     return <Spinner label="Loading enterprise supply chain modules" />
   }
@@ -330,7 +433,8 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
             { key: 'carrier', title: 'Carrier', sortable: true, render: (row) => <div className="table-primary"><strong>{row.carrier}</strong><span>{row.trackingNumber}</span></div> },
             { key: 'direction', title: 'Direction', sortable: true },
             { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={toneFromStatus(row.status)} /> },
-            { key: 'scheduledShipDate', title: 'Scheduled', sortable: true, render: (row) => formatDate(row.scheduledShipDate) }
+            { key: 'scheduledShipDate', title: 'Scheduled', sortable: true, render: (row) => formatDate(row.scheduledShipDate) },
+            { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openShipmentStatusModal(row)}>Update status</button> }
           ]}
           data={shipments}
           rowKey="id"
@@ -379,7 +483,8 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
             { key: 'assetClass', title: 'Class', sortable: true },
             { key: 'residualValue', title: 'Residual', sortable: true, align: 'right', render: (row) => formatCurrency(row.residualValue) },
             { key: 'ownerDepartment', title: 'Owner', sortable: true },
-            { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={toneFromStatus(row.status)} /> }
+            { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={toneFromStatus(row.status)} /> },
+            { key: 'actions', title: 'Actions', render: (row) => <div className="table-actions"><button type="button" className="ghost-button" onClick={() => openFixedAssetTransferModal(row)}>Transfer</button><button type="button" className="ghost-button" onClick={() => openFixedAssetRevalueModal(row)}>Revalue</button></div> }
           ]}
           data={fixedAssets}
           rowKey="id"
@@ -416,7 +521,8 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
           { key: 'title', title: 'Title', sortable: true },
           { key: 'requestedBy', title: 'Requested by', sortable: true },
           { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={toneFromStatus(row.status)} /> },
-          { key: 'requestedAt', title: 'Requested', sortable: true, render: (row) => formatDate(row.requestedAt) }
+          { key: 'requestedAt', title: 'Requested', sortable: true, render: (row) => formatDate(row.requestedAt) },
+          { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openChangeStatusModal(row)}>Update status</button> }
         ]}
         data={changes}
         rowKey="id"
@@ -480,6 +586,41 @@ export default function SupplyChainEnterprisePanel({ products }: { products: Pro
           <InputField label="Title" registration={changeForm.register('title', { required: true })} />
           <InputField label="Requested by" registration={changeForm.register('requestedBy', { required: true })} />
           <TextAreaField label="Impact summary" registration={changeForm.register('impactSummary', { required: true })} />
+        </form>
+      </Modal>
+
+      <Modal open={shipmentStatusOpen} onClose={() => setShipmentStatusOpen(false)} title={selectedShipment?.shipmentNumber || 'Update shipment'} description="Advance or close out the shipment state." footer={<><button type="button" className="ghost-button" onClick={() => setShipmentStatusOpen(false)}>Cancel</button><button type="submit" form="shipment-status-form" className="primary-button" disabled={shipmentStatusForm.formState.isSubmitting}>{shipmentStatusForm.formState.isSubmitting ? 'Saving...' : 'Save status'}</button></>}>
+        <form id="shipment-status-form" className="form-grid" onSubmit={shipmentStatusForm.handleSubmit(submitShipmentStatus)}>
+          <SelectField label="Status" registration={shipmentStatusForm.register('status', { required: true })}>
+            <option value="Scheduled">Scheduled</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Delayed">Delayed</option>
+          </SelectField>
+        </form>
+      </Modal>
+
+      <Modal open={assetTransferOpen} onClose={() => setAssetTransferOpen(false)} title={selectedFixedAsset?.assetNumber || 'Transfer asset'} description="Move the fixed asset to a new branch, owner, or location." footer={<><button type="button" className="ghost-button" onClick={() => setAssetTransferOpen(false)}>Cancel</button><button type="submit" form="asset-transfer-form" className="primary-button" disabled={fixedAssetTransferForm.formState.isSubmitting}>{fixedAssetTransferForm.formState.isSubmitting ? 'Saving...' : 'Save transfer'}</button></>}>
+        <form id="asset-transfer-form" className="form-grid form-grid--two" onSubmit={fixedAssetTransferForm.handleSubmit(submitFixedAssetTransfer)}>
+          <SelectField label="Branch" registration={fixedAssetTransferForm.register('branchCode', { required: true })}><option value="">Select branch</option>{branches.map((branch) => <option key={branch.id} value={branch.branchCode}>{branch.branchCode} / {branch.name}</option>)}</SelectField>
+          <InputField label="Owner department" registration={fixedAssetTransferForm.register('ownerDepartment', { required: true })} />
+          <InputField label="Current location" registration={fixedAssetTransferForm.register('currentLocation', { required: true })} />
+        </form>
+      </Modal>
+
+      <Modal open={assetRevalueOpen} onClose={() => setAssetRevalueOpen(false)} title={selectedFixedAsset?.assetNumber || 'Revalue asset'} description="Post a fixed-asset revaluation to the register." footer={<><button type="button" className="ghost-button" onClick={() => setAssetRevalueOpen(false)}>Cancel</button><button type="submit" form="asset-revalue-form" className="primary-button" disabled={fixedAssetRevalueForm.formState.isSubmitting}>{fixedAssetRevalueForm.formState.isSubmitting ? 'Saving...' : 'Save revaluation'}</button></>}>
+        <form id="asset-revalue-form" className="form-grid" onSubmit={fixedAssetRevalueForm.handleSubmit(submitFixedAssetRevalue)}>
+          <InputField label="Revaluation amount" type="number" step="0.01" registration={fixedAssetRevalueForm.register('revaluationAmount', { required: true, valueAsNumber: true })} />
+        </form>
+      </Modal>
+
+      <Modal open={changeStatusOpen} onClose={() => setChangeStatusOpen(false)} title={selectedChange?.changeNumber || 'Update engineering change'} description="Move the engineering change through review, approval, or implementation." footer={<><button type="button" className="ghost-button" onClick={() => setChangeStatusOpen(false)}>Cancel</button><button type="submit" form="change-status-form" className="primary-button" disabled={changeStatusForm.formState.isSubmitting}>{changeStatusForm.formState.isSubmitting ? 'Saving...' : 'Save change'}</button></>}>
+        <form id="change-status-form" className="form-grid" onSubmit={changeStatusForm.handleSubmit(submitChangeStatus)}>
+          <SelectField label="Status" registration={changeStatusForm.register('status', { required: true })}>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Implemented">Implemented</option>
+          </SelectField>
         </form>
       </Modal>
     </div>

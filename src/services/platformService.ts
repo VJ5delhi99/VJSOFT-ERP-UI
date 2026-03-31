@@ -2,11 +2,13 @@ import type {
   AiReadinessDto,
   AuditTrailEntryDto,
   DemoStatusDto,
+  IndustryProfileDto,
   NotificationDto,
   OrganizationOverviewDto,
   OutboxMessageDto,
   PlatformContextDto,
-  PlatformOperationsSummaryDto
+  PlatformOperationsSummaryDto,
+  WorkflowTemplateDto
 } from '../types'
 import { requestGet, requestPost } from './apiClient'
 
@@ -49,5 +51,16 @@ export const platformService = {
   },
   getAiReadiness() {
     return requestGet<AiReadinessDto>('platform', '/api/platform/ai/readiness')
+  },
+  getIndustryProfiles() {
+    return requestGet<IndustryProfileDto[]>('platform', '/api/platform/industry-profiles')
+  },
+  activateIndustryProfile(industryCode: string) {
+    return requestPost<IndustryProfileDto, { industryCode: string }>('platform', '/api/platform/industry-profiles/activate', { industryCode })
+  },
+  getWorkflowTemplates(industryCode?: string) {
+    return requestGet<WorkflowTemplateDto[]>('platform', '/api/platform/workflow-templates', {
+      params: { industryCode: industryCode || undefined }
+    })
   }
 }

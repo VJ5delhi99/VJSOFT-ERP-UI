@@ -16,6 +16,7 @@ import type {
   RequestForQuoteDto,
   SupplierDto,
   ThreeWayMatchDto,
+  VendorComparisonDto,
   WebhookSubscriptionDto
 } from '../../types'
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format'
@@ -53,6 +54,14 @@ interface WebhookFormValues {
   secretReference: string
 }
 
+interface RequisitionStatusFormValues {
+  status: string
+}
+
+interface WebhookDeliveryFormValues {
+  deliveryStatus: string
+}
+
 function tone(status: string) {
   switch (status.toLowerCase()) {
     case 'healthy':
@@ -86,11 +95,19 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
   const [rfqOpen, setRfqOpen] = useState(false)
   const [integrationOpen, setIntegrationOpen] = useState(false)
   const [webhookOpen, setWebhookOpen] = useState(false)
+  const [requisitionStatusOpen, setRequisitionStatusOpen] = useState(false)
+  const [vendorComparisonOpen, setVendorComparisonOpen] = useState(false)
+  const [webhookDeliveryOpen, setWebhookDeliveryOpen] = useState(false)
+  const [selectedRequisition, setSelectedRequisition] = useState<PurchaseRequisitionDto | null>(null)
+  const [selectedComparison, setSelectedComparison] = useState<VendorComparisonDto | null>(null)
+  const [selectedWebhook, setSelectedWebhook] = useState<WebhookSubscriptionDto | null>(null)
 
   const requisitionForm = useForm<RequisitionFormValues>({ defaultValues: { department: '', requestedBy: '', justification: '', productId: '', quantity: 1, estimatedUnitCost: 0 } })
   const rfqForm = useForm<RfqFormValues>({ defaultValues: { requisitionId: '', title: '', responseWindowDays: 7, supplierId: '', quotedAmount: 0, leadTimeDays: 7 } })
   const integrationForm = useForm<IntegrationFormValues>({ defaultValues: { name: '', type: 'CRM', provider: '', endpointUrl: '' } })
   const webhookForm = useForm<WebhookFormValues>({ defaultValues: { name: '', topic: 'sales', targetUrl: '', secretReference: '' } })
+  const requisitionStatusForm = useForm<RequisitionStatusFormValues>({ defaultValues: { status: 'Approved' } })
+  const webhookDeliveryForm = useForm<WebhookDeliveryFormValues>({ defaultValues: { deliveryStatus: 'Delivered' } })
 
   async function loadFinanceEnterprise() {
     setLoading(true)
@@ -154,6 +171,46 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
     await loadFinanceEnterprise()
   }
 
+  function openRequisitionStatusModal(requisition: PurchaseRequisitionDto) {
+    setSelectedRequisition(requisition)
+    requisitionStatusForm.reset({ status: requisition.status === 'Approved' ? 'Approved' : 'Rejected' })
+    setRequisitionStatusOpen(true)
+  }
+
+  async function openVendorComparison(rfq: RequestForQuoteDto) {
+    const comparison = await financeService.getVendorComparison(rfq.id)
+    setSelectedComparison(comparison)
+    setVendorComparisonOpen(true)
+  }
+
+  function openWebhookDeliveryModal(webhook: WebhookSubscriptionDto) {
+    setSelectedWebhook(webhook)
+    webhookDeliveryForm.reset({ deliveryStatus: webhook.lastDeliveryStatus || 'Delivered' })
+    setWebhookDeliveryOpen(true)
+  }
+
+  async function submitRequisitionStatus(values: RequisitionStatusFormValues) {
+    if (!selectedRequisition) {
+      return
+    }
+
+    await financeService.updatePurchaseRequisitionStatus(selectedRequisition.id, values)
+    showToast('Requisition updated', `${selectedRequisition.requisitionNumber} is now ${values.status}.`, 'success')
+    setRequisitionStatusOpen(false)
+    await loadFinanceEnterprise()
+  }
+
+  async function submitWebhookDelivery(values: WebhookDeliveryFormValues) {
+    if (!selectedWebhook) {
+      return
+    }
+
+    await financeService.recordWebhookDelivery(selectedWebhook.id, values)
+    showToast('Webhook delivery recorded', `${selectedWebhook.name} delivery was marked ${values.deliveryStatus}.`, 'success')
+    setWebhookDeliveryOpen(false)
+    await loadFinanceEnterprise()
+  }
+
   if (loading) {
     return <Spinner label="Loading procurement and integration controls" />
   }
@@ -190,7 +247,8 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
             { key: 'requestedBy', title: 'Requested by', sortable: true },
             { key: 'estimatedTotal', title: 'Estimated total', sortable: true, align: 'right', render: (row) => formatCurrency(row.estimatedTotal) },
             { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={tone(row.status)} /> },
-            { key: 'requestedAt', title: 'Requested', sortable: true, render: (row) => formatDate(row.requestedAt) }
+            { key: 'requestedAt', title: 'Requested', sortable: true, render: (row) => formatDate(row.requestedAt) },
+            { key: 'actions', title: 'Actions', render: (row) => row.status === 'Submitted' ? <button type="button" className="ghost-button" onClick={() => openRequisitionStatusModal(row)}>Review</button> : 'Reviewed' }
           ]}
           data={requisitions}
           rowKey="id"
@@ -207,7 +265,8 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
             { key: 'rfqNumber', title: 'RFQ', sortable: true, render: (row) => <div className="table-primary"><strong>{row.rfqNumber}</strong><span>{row.title}</span></div> },
             { key: 'supplierQuotes', title: 'Quotes', align: 'right', render: (row) => row.supplierQuotes.length },
             { key: 'status', title: 'Status', sortable: true, render: (row) => <StatusBadge label={row.status} tone={tone(row.status)} /> },
-            { key: 'responseDueAt', title: 'Due', sortable: true, render: (row) => formatDate(row.responseDueAt) }
+            { key: 'responseDueAt', title: 'Due', sortable: true, render: (row) => formatDate(row.responseDueAt) },
+            { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => void openVendorComparison(row)}>Compare</button> }
           ]}
           data={rfqs}
           rowKey="id"
@@ -287,7 +346,8 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
             { key: 'name', title: 'Webhook', sortable: true, render: (row) => <div className="table-primary"><strong>{row.name}</strong><span>{row.topic}</span></div> },
             { key: 'targetUrl', title: 'Target', sortable: true },
             { key: 'lastDeliveryStatus', title: 'Delivery', sortable: true, render: (row) => <StatusBadge label={row.lastDeliveryStatus} tone={tone(row.lastDeliveryStatus)} /> },
-            { key: 'lastDeliveredAt', title: 'Last delivered', sortable: true, render: (row) => row.lastDeliveredAt ? formatDateTime(row.lastDeliveredAt) : 'Not yet' }
+            { key: 'lastDeliveredAt', title: 'Last delivered', sortable: true, render: (row) => row.lastDeliveredAt ? formatDateTime(row.lastDeliveredAt) : 'Not yet' },
+            { key: 'actions', title: 'Actions', render: (row) => <button type="button" className="ghost-button" onClick={() => openWebhookDeliveryModal(row)}>Record delivery</button> }
           ]}
           data={webhooks}
           rowKey="id"
@@ -354,6 +414,56 @@ export default function FinanceEnterprisePanel({ products, suppliers }: { produc
           </SelectField>
           <InputField label="Target URL" registration={webhookForm.register('targetUrl', { required: true })} />
           <InputField label="Secret reference" registration={webhookForm.register('secretReference', { required: true })} />
+        </form>
+      </Modal>
+
+      <Modal open={requisitionStatusOpen} onClose={() => setRequisitionStatusOpen(false)} title={selectedRequisition?.requisitionNumber || 'Review requisition'} description="Approve or reject the procurement request." footer={<><button type="button" className="ghost-button" onClick={() => setRequisitionStatusOpen(false)}>Cancel</button><button type="submit" form="requisition-status-form" className="primary-button" disabled={requisitionStatusForm.formState.isSubmitting}>{requisitionStatusForm.formState.isSubmitting ? 'Saving...' : 'Save decision'}</button></>}>
+        <form id="requisition-status-form" className="form-grid" onSubmit={requisitionStatusForm.handleSubmit(submitRequisitionStatus)}>
+          <SelectField label="Decision" registration={requisitionStatusForm.register('status', { required: true })}>
+            <option value="Approved">Approve</option>
+            <option value="Rejected">Reject</option>
+          </SelectField>
+        </form>
+      </Modal>
+
+      <Modal open={vendorComparisonOpen} onClose={() => setVendorComparisonOpen(false)} title={selectedComparison?.rfqNumber || 'Vendor comparison'} description="Ranked supplier comparison for the selected RFQ." size="lg">
+        {selectedComparison ? (
+          <div className="page-stack">
+            <article className="surface-card enterprise-summary">
+              <div className="enterprise-summary__grid">
+                <div className="enterprise-summary__metric"><span>Recommended supplier</span><strong>{selectedComparison.recommendedSupplierName}</strong></div>
+                <div className="enterprise-summary__metric"><span>Recommended quote</span><strong>{formatCurrency(selectedComparison.recommendedQuote)}</strong></div>
+                <div className="enterprise-summary__metric"><span>Lead time</span><strong>{selectedComparison.recommendedLeadTimeDays}d</strong></div>
+              </div>
+            </article>
+            <DataTable
+              title="Supplier options"
+              description="Scored supplier quotes returned by the RFQ comparison engine."
+              columns={[
+                { key: 'supplierName', title: 'Supplier', sortable: true },
+                { key: 'quotedAmount', title: 'Quote', sortable: true, align: 'right', render: (row) => formatCurrency(row.quotedAmount) },
+                { key: 'leadTimeDays', title: 'Lead time', sortable: true, render: (row) => `${row.leadTimeDays}d` },
+                { key: 'score', title: 'Score', sortable: true, align: 'right' },
+                { key: 'isAwarded', title: 'Award', sortable: true, render: (row) => <StatusBadge label={row.isAwarded ? 'Recommended' : 'Option'} tone={row.isAwarded ? 'success' : 'info'} /> }
+              ]}
+              data={selectedComparison.options}
+              rowKey="supplierId"
+              searchKeys={['supplierName']}
+              searchPlaceholder="Search supplier options"
+              emptyTitle="No supplier options"
+              emptyDescription="No supplier quote options are available for this RFQ."
+            />
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal open={webhookDeliveryOpen} onClose={() => setWebhookDeliveryOpen(false)} title={selectedWebhook?.name || 'Record webhook delivery'} description="Record the latest delivery outcome for this subscription." footer={<><button type="button" className="ghost-button" onClick={() => setWebhookDeliveryOpen(false)}>Cancel</button><button type="submit" form="webhook-delivery-form" className="primary-button" disabled={webhookDeliveryForm.formState.isSubmitting}>{webhookDeliveryForm.formState.isSubmitting ? 'Saving...' : 'Save delivery'}</button></>}>
+        <form id="webhook-delivery-form" className="form-grid" onSubmit={webhookDeliveryForm.handleSubmit(submitWebhookDelivery)}>
+          <SelectField label="Delivery status" registration={webhookDeliveryForm.register('deliveryStatus', { required: true })}>
+            <option value="Delivered">Delivered</option>
+            <option value="Retrying">Retrying</option>
+            <option value="Failed">Failed</option>
+          </SelectField>
         </form>
       </Modal>
     </div>
