@@ -3,17 +3,37 @@ import { apiConfig } from '../config/api'
 import type { AuthState, LoginResponse } from '../types'
 import { readJsonStorage, readStorage, removeStorage, writeJsonStorage, writeStorage } from '../utils/storage'
 
+function clearPersistedSession() {
+  removeStorage(apiConfig.storageKeys.token)
+  removeStorage(apiConfig.storageKeys.refreshToken)
+  removeStorage(apiConfig.storageKeys.expiresAtUtc)
+  removeStorage(apiConfig.storageKeys.user)
+}
+
 const token = readStorage(apiConfig.storageKeys.token, null)
 const refreshToken = readStorage(apiConfig.storageKeys.refreshToken, null)
 const expiresAtUtc = readStorage(apiConfig.storageKeys.expiresAtUtc, null)
 const user = readJsonStorage<AuthState['user']>(apiConfig.storageKeys.user, null)
 
+if (apiConfig.demoModeEnabled && expiresAtUtc && new Date(expiresAtUtc).getTime() <= Date.now()) {
+  clearPersistedSession()
+}
+
+const sessionToken =
+  apiConfig.demoModeEnabled && expiresAtUtc && new Date(expiresAtUtc).getTime() <= Date.now() ? null : token
+const sessionRefreshToken =
+  apiConfig.demoModeEnabled && expiresAtUtc && new Date(expiresAtUtc).getTime() <= Date.now() ? null : refreshToken
+const sessionExpiresAtUtc =
+  apiConfig.demoModeEnabled && expiresAtUtc && new Date(expiresAtUtc).getTime() <= Date.now() ? null : expiresAtUtc
+const sessionUser =
+  apiConfig.demoModeEnabled && expiresAtUtc && new Date(expiresAtUtc).getTime() <= Date.now() ? null : user
+
 const initialState: AuthState = {
-  token,
-  refreshToken,
-  expiresAtUtc,
-  user,
-  status: token && user ? 'authenticated' : 'idle'
+  token: sessionToken,
+  refreshToken: sessionRefreshToken,
+  expiresAtUtc: sessionExpiresAtUtc,
+  user: sessionUser,
+  status: sessionToken && sessionUser ? 'authenticated' : 'idle'
 }
 
 const authSlice = createSlice({
@@ -50,10 +70,7 @@ const authSlice = createSlice({
       state.expiresAtUtc = null
       state.user = null
       state.status = 'idle'
-      removeStorage(apiConfig.storageKeys.token)
-      removeStorage(apiConfig.storageKeys.refreshToken)
-      removeStorage(apiConfig.storageKeys.expiresAtUtc)
-      removeStorage(apiConfig.storageKeys.user)
+      clearPersistedSession()
     }
   }
 })

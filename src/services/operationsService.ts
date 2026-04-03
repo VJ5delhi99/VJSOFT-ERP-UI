@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { apiConfig } from '../config/api'
+import { getDemoServiceHealth } from '../demo/demoApi'
 import type { ServiceHealthDto } from '../types'
 
 interface HealthResponse {
@@ -51,6 +52,10 @@ function toOfflineHealth(service: (typeof serviceCatalog)[number]): ServiceHealt
 
 export const operationsService = {
   async getServiceHealth() {
+    if (apiConfig.demoModeEnabled) {
+      return getDemoServiceHealth()
+    }
+
     const results = await Promise.all(
       serviceCatalog.map(async (service) => {
         try {

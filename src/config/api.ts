@@ -35,14 +35,17 @@ export const apiConfig = {
   appName: import.meta.env.VITE_APP_NAME || 'Edgeonix',
   environment,
   enableLogs: import.meta.env.VITE_ENABLE_APP_LOGS === 'true' || import.meta.env.DEV,
-  useMocks: false,
+  demoModeEnabled: import.meta.env.VITE_ENABLE_DEMO_MODE === 'true',
+  useMocks: import.meta.env.VITE_ENABLE_DEMO_MODE === 'true',
+  demoCacheTtlHours: Number(import.meta.env.VITE_DEMO_CACHE_TTL_HOURS || 24),
   requestTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS || 20000),
   authDeviceId: import.meta.env.VITE_AUTH_DEVICE_ID || 'edgeonix-erp-ui',
   storageKeys: {
     token: 'vj.erp.token',
     refreshToken: 'vj.erp.refresh-token',
     expiresAtUtc: 'vj.erp.expires-at',
-    user: 'vj.erp.user'
+    user: 'vj.erp.user',
+    demoCache: 'vj.erp.demo-cache'
   },
   services: {
     auth: resolveServiceUrl(import.meta.env.VITE_SERVICE_AUTH_URL, getBrowserBaseUrl(8080)),

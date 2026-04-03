@@ -1,5 +1,6 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { apiConfig, type ServiceKey } from '../config/api'
+import { handleDemoRequest } from '../demo/demoApi'
 import { store } from '../store'
 import { clearSession } from '../store/authSlice'
 import { pushToast } from '../store/uiSlice'
@@ -131,30 +132,47 @@ export function normalizeApiError(error: unknown): ApiError {
   }
 }
 
-async function executeRequest<T>(service: ServiceKey, request: (client: AxiosInstance) => Promise<{ data: ApiEnvelope<T> | T }>) {
+async function executeRequest<T>(
+  service: ServiceKey,
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  path: string,
+  request: (client: AxiosInstance) => Promise<{ data: ApiEnvelope<T> | T }>,
+  payload?: unknown,
+  config?: AxiosRequestConfig
+) {
+  if (apiConfig.demoModeEnabled) {
+    try {
+      return await handleDemoRequest<T>(service, method, path, payload, config)
+    } catch (error) {
+      const normalizedError = normalizeApiError(error)
+      logger.error('Demo API request failed', normalizedError)
+      return Promise.reject(normalizedError)
+    }
+  }
+
   const client = getClient(service)
   const response = await request(client)
   return unwrapPayload(response.data)
 }
 
 export function requestGet<T>(service: ServiceKey, path = '', config?: AxiosRequestConfig) {
-  return executeRequest<T>(service, (client) => client.get(path, config))
+  return executeRequest<T>(service, 'GET', path, (client) => client.get(path, config), undefined, config)
 }
 
 export function requestPost<T, TPayload = unknown>(service: ServiceKey, path = '', payload?: TPayload, config?: AxiosRequestConfig) {
-  return executeRequest<T>(service, (client) => client.post(path, payload, config))
+  return executeRequest<T>(service, 'POST', path, (client) => client.post(path, payload, config), payload, config)
 }
 
 export function requestPut<T, TPayload = unknown>(service: ServiceKey, path = '', payload?: TPayload, config?: AxiosRequestConfig) {
-  return executeRequest<T>(service, (client) => client.put(path, payload, config))
+  return executeRequest<T>(service, 'PUT', path, (client) => client.put(path, payload, config), payload, config)
 }
 
 export function requestPatch<T, TPayload = unknown>(service: ServiceKey, path = '', payload?: TPayload, config?: AxiosRequestConfig) {
-  return executeRequest<T>(service, (client) => client.patch(path, payload, config))
+  return executeRequest<T>(service, 'PATCH', path, (client) => client.patch(path, payload, config), payload, config)
 }
 
 export function requestDelete<T>(service: ServiceKey, path = '', config?: AxiosRequestConfig) {
-  return executeRequest<T>(service, (client) => client.delete(path, config))
+  return executeRequest<T>(service, 'DELETE', path, (client) => client.delete(path, config), undefined, config)
 }
 
 export function ensureListResponse<T>(payload: unknown): T[] {

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { InputField } from '../components/FormField'
+import { apiConfig } from '../config/api'
+import { demoAccounts } from '../demo/demoAuth'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { normalizeApiError } from '../services/apiClient'
@@ -13,27 +15,6 @@ interface LoginFormValues {
   password: string
 }
 
-const demoAccounts = [
-  {
-    label: 'Admin',
-    userNameOrEmail: 'admin@demo.com',
-    password: 'Password123!',
-    description: 'Full access across the organization.'
-  },
-  {
-    label: 'Manager',
-    userNameOrEmail: 'manager@demo.com',
-    password: 'Password123!',
-    description: 'Best for daily operations and reporting.'
-  },
-  {
-    label: 'User',
-    userNameOrEmail: 'user@demo.com',
-    password: 'Password123!',
-    description: 'Basic access for product and service work.'
-  }
-] as const
-
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -42,6 +23,7 @@ export default function Login() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [demoStatus, setDemoStatus] = useState<DemoStatusDto | null>(null)
   const [pendingDemoAccount, setPendingDemoAccount] = useState<string | null>(null)
+  const isDemoMode = apiConfig.demoModeEnabled || demoStatus?.isEnabled
   const {
     register,
     handleSubmit,
@@ -154,11 +136,21 @@ export default function Login() {
             </button>
           </form>
 
-          {demoStatus?.isEnabled ? (
+          {isDemoMode ? (
             <div className="auth-card__demo">
               <div className="auth-card__demo-copy">
                 <strong>Explore the sample organization</strong>
-                <p>Open a ready-to-review business scenario and explore the product with role-based access.</p>
+                <p>Demo mode is enabled. Use any sample login below to open a fully working in-browser business scenario without live API access.</p>
+              </div>
+              <div className="auth-card__demo-credentials">
+                {demoAccounts.map((account) => (
+                  <div key={`${account.label}-credentials`} className="auth-card__demo-credential">
+                    <strong>{account.label}</strong>
+                    <span>User ID: {account.userNameOrEmail}</span>
+                    <span>Password: {account.password}</span>
+                    <small>{account.description}</small>
+                  </div>
+                ))}
               </div>
               <div className="demo-login-grid">
                 {demoAccounts.map((account) => {
